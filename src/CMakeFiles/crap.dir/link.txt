@@ -1,1 +1,0 @@
-/usr/bin/c++   -g -Wall -Wextra    CMakeFiles/crap.dir/core.cpp.o  -o crap -rdynamic ../lib/yaml-cpp/libyaml-cpp.a 
