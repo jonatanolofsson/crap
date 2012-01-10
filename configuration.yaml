@@ -1,0 +1,12 @@
+---
+module_root: modules/
+modules:
+ - name: test
+   file: libtestmodule.so
+
+ - name: sender
+   file: libcomm_sender.so
+
+ - name: receiver
+   file: libcomm_receiver.so
+   configuration: test

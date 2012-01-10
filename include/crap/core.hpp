@@ -17,13 +17,12 @@
  * along with CRAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CRAP_MODULE_HPP_
-#define CRAP_MODULE_HPP_
+#ifndef CRAP_CORE_HPP_
+#define CRAP_CORE_HPP_
 
-#include "crap/communication.hpp"
-#include <boost/thread.hpp>
-#include "yaml-cpp/yaml.h"
-#include "crap/log.hpp"
+#include <boost/timer.hpp>
+namespace CRAP {
+    extern boost::timer starting_time;
+}
 
-//CRAP_MODULE_HPP_
 #endif

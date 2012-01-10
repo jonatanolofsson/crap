@@ -20,14 +20,24 @@
 #include "crap/module.hpp"
 #include <string>
 #include "boost/date_time/posix_time/posix_time.hpp"
+#include <boost/random.hpp>
+#include <boost/random/normal_distribution.hpp>
 #include <ctime>
+#include <iostream>
 
 extern "C" {
     void run() {
+        boost::mt19937 rng(std::time(0));
+        boost::normal_distribution<> nd(0.0, 1.0);
+
+        boost::variate_generator<boost::mt19937&, boost::normal_distribution<> > var_nor(rng, nd);
+        
+                           
         CRAP::comm::send<std::string>("latchtest", "Latched string", true);
         while(true) {
             CRAP::comm::send<std::clock_t>("time", std::clock());
-            boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+            CRAP::comm::send<double>("doubletest", var_nor());
+            boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
         }
     }
 }

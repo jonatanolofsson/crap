@@ -17,13 +17,12 @@
  * along with CRAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CRAP_MODULE_HPP_
-#define CRAP_MODULE_HPP_
-
-#include "crap/communication.hpp"
-#include <boost/thread.hpp>
-#include "yaml-cpp/yaml.h"
+#define CRAP_LOG_NO_EXTERN_LOGGER
 #include "crap/log.hpp"
+#undef CRAP_LOG_NO_EXTERN_LOGGER
 
-//CRAP_MODULE_HPP_
-#endif
+namespace CRAP {
+    namespace log {
+        logger_t logger();
+    }
+}

@@ -1,22 +1,22 @@
 /**
  * Copyright 2011, 2012 Jonatan Olofsson
- * 
+ *
  * This file is part of C++ Robot Automation Platform (CRAP).
- * 
+ *
  * CRAP is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * CRAP is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with CRAP.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #include <iostream>
 #include <fstream>
 #include <dlfcn.h>
@@ -26,9 +26,9 @@
 #include "yaml-cpp/yaml.h"
 
 #include <boost/thread.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/shared_ptr.hpp>
-#include "boost/date_time/posix_time/posix_time.hpp"
-
+#include <boost/timer.hpp>
 
 
 namespace CRAP {
@@ -38,11 +38,20 @@ namespace CRAP {
     typedef void(*configuration_function)(YAML::Node&);
     typedef std::map<std::string, configuration_function> configuration_map;
 
+    /**
+     * Global starting time
+     */
+    boost::timer starting_time;
+
 
     /**
      * Variable containing YAML-data with system configuration
      */
     YAML::Node config;
+
+    /**
+     * Map of all nodes' configurations
+     */
     std::map<std::string, YAML::Node> node_config;
 
     /**
@@ -54,7 +63,11 @@ namespace CRAP {
      * Map of the modules' threads
      */
     thread_map threads;
-    
+
+    /**
+     * Links to all the configuration functions of the modules that have them,
+     * and a initializing configuration specified in the module configuration YAML-file.
+     */
     configuration_map configuration_functions;
 
 
@@ -65,7 +78,7 @@ namespace CRAP {
     void unregister_module(const std::string);
     void unregister_all_modules();
     void setup(std::string);
-    
+
     /**
      * Call the configuration function of the module
      * \param name Name of the module to be reconfigured
@@ -83,18 +96,18 @@ namespace CRAP {
     void register_module(const std::string name, const std::string file, bool configure) {
         void* dlib;
         std::string module_path;
-        
-        module_path = config["module_root"].as<std::string>("modules/") + file; //config["module_root"].as<std::string>("")
+
+        module_path = config["module_root"].as<std::string>() + file; //config["module_root"].as<std::string>("")
         std::cout << "Adding module: " << module_path << std::endl;
         dlib = dlopen(module_path.c_str(), RTLD_LAZY);
-        
+
         if(dlib == NULL) {
             std::cerr << "Failed to link module: " << module_path << "(" << dlerror() << ")" << std::endl;
             return; //FIXME: Throw exception?
         }
-        
+
         modules[name] = dlib;
-        
+
         if(configure) {
             void* cfn = dlsym(modules[name], "configure");
             if(cfn == NULL) {
@@ -104,7 +117,7 @@ namespace CRAP {
                 reconfigure(name);
             }
         }
-        
+
         void* rfn = dlsym(dlib, "run");
         threads[name] = boost::shared_ptr<boost::thread>(new boost::thread((void(*)())rfn));
     }
@@ -117,9 +130,9 @@ namespace CRAP {
     void register_module_yaml(const YAML::Node module) {
         assert(module["file"]);
         assert(module["name"]);
-        
+
         std::string name = module["name"].as<std::string>();
-        
+
         bool configure = false;
         if(module["configuration"]) {
             if(module["configuration"].IsScalar()) {
@@ -170,12 +183,14 @@ namespace CRAP {
     inline void join() {
         unregister_all_modules();
     }
-    
+
     inline void spin() {
-        while(true) boost::thread::yield();
+        while(true) {
+            boost::this_thread::yield();
+        }
     }
-    
-    inline void go() {
+
+    void go() {
         boost::thread(spin).join();
     }
 
@@ -191,7 +206,7 @@ namespace CRAP {
             //~ modules = YAML::LoadFile(configuration_filename);
             configuration_file.open(configuration_filename.c_str());
             config = YAML::Load(configuration_file);
-                
+
             // Link the modules
             std::for_each(config["modules"].begin(), config["modules"].end(), register_module_yaml);
         }
@@ -203,28 +218,31 @@ namespace CRAP {
         }
     }
 }
- 
+
 /**
  * Main function which is run when the program starts
  * The single command-line argument should be a YAML configuration-file with
- * the 
+ * the
  */
-int main(int argc, const char* argv[])
+int main(int argc, char* argv[])
 {
     /**
      * Variable containing the configuration filename
      */
     std::string configuration_filename = "configuration.yaml";
-    
+
     // Set configuration filename
     if(argc < 2) {
         std::cout << "Using default configuration filename: " << configuration_filename << std::endl;
     } else {
         configuration_filename = argv[1];
     }
-    
-    
+
+
     // Load CRAP configuration
     CRAP::setup(configuration_filename);
-    CRAP::go();
+    std::cout << "go!!" << std::endl;
+    CRAP::spin();
+    std::cout << "went!" << std::endl;
 }
+
