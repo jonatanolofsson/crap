@@ -22,6 +22,7 @@
 #include <iostream>
 #include <ctime>
 #include <string>
+#include <utility>
 
 void time_recipient(const std::clock_t& start) {
     std::cout << "Timer!" << std::endl;
@@ -32,9 +33,10 @@ void time_recipient(const std::clock_t& start) {
 void string_recipient(const std::string& msg) {
     std::cout << msg << std::endl;
 }
+
 void double_recipient(const double& msg) {
-    std::cout << "Double!" << std::endl;
-    //~ plt << msg;
+    //~ std::cout << "Double!" << std::endl;
+    cpplot::figure("Noise") << std::make_pair(CRAP::starting_time.elapsed(), msg);
 }
 
 extern "C" {

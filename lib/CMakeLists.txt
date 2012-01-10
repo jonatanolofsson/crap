@@ -1,2 +1,2 @@
 add_subdirectory(yaml-cpp)
-#~ add_subdirectory(matplotpp)
+add_subdirectory(cpplot)

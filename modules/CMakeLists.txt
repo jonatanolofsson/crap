@@ -8,10 +8,10 @@ include_directories(${MATPLOTPP_SOURCE_DIR})
 
 # Modules with default configuration
 set(MODULES testmodule comm_sender comm_receiver)
-set(CORELIBS yaml-cpp)
+set(CORELIBS yaml-cpp cpplot)
 foreach(module ${MODULES})
     add_library(${module} SHARED ${module}.cpp)
-    target_link_libraries(${module} 
+    target_link_libraries(${module}
         ${CORELIBS}
         ${Boost_LIBRARIES})
 endforeach(module)

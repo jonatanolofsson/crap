@@ -23,7 +23,9 @@
 #include "crap/communication.hpp"
 #include <boost/thread.hpp>
 #include "yaml-cpp/yaml.h"
+#include "cpplot.hpp"
 #include "crap/log.hpp"
+#include "crap/core.hpp"
 
 //CRAP_MODULE_HPP_
 #endif

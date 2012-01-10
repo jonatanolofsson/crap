@@ -30,6 +30,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/timer.hpp>
 
+#include "cpplot.hpp"
+
 
 namespace CRAP {
     /// Typedefs for module maps
@@ -102,7 +104,7 @@ namespace CRAP {
         dlib = dlopen(module_path.c_str(), RTLD_LAZY);
 
         if(dlib == NULL) {
-            std::cerr << "Failed to link module: " << module_path << "(" << dlerror() << ")" << std::endl;
+            std::cerr << "Failed to link module: " << "(" << dlerror() << ")" << std::endl;
             return; //FIXME: Throw exception?
         }
 
@@ -226,6 +228,7 @@ namespace CRAP {
  */
 int main(int argc, char* argv[])
 {
+    cpplot::glut::init(argc, argv);
     /**
      * Variable containing the configuration filename
      */

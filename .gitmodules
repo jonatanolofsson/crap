@@ -1,3 +1,6 @@
 [submodule "lib/yaml-cpp"]
 	path = lib/yaml-cpp
 	url = git@github.com:jonatanolofsson/yaml-cpp.git
+[submodule "lib/cpplot"]
+	path = lib/cpplot
+	url = git://github.com/jonatanolofsson/cpplot.git

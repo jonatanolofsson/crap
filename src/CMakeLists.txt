@@ -9,9 +9,9 @@ find_package( Boost COMPONENTS thread )
 link_directories ( ${Boost_LIBRARY_DIRS} )
 include_directories ( ${Boost_INCLUDE_DIRS} )
 
-include_directories(${YAML_CPP_SOURCE_DIR}/include)
 add_executable(crap core.cpp communication.cpp)
 target_link_libraries(crap
     yaml-cpp
     ${Boost_LIBRARIES}
-    )
+    cpplot
+)
