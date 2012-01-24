@@ -1,12 +1,31 @@
 ---
 module_root: modules/
 modules:
- - name: test
-   file: libtestmodule.so
+ #~ - name: test
+   #~ file: testmodule.so
 
- - name: sender
-   file: libcomm_sender.so
+ -  name: sender
+    file: comm_sender.so
 
- - name: receiver
-   file: libcomm_receiver.so
-   configuration: test
+ -  name: receiver
+    file: comm_receiver.so
+    configuration: test
+
+ -  name: observer
+    file: observer.so
+    configuration: test
+
+ -  name: controller
+    file: controller.so
+    configuration: controller_config.yaml
+
+ #~ -  name: sensor_reader
+    #~ file: sensor_reader.so
+    #~ configuration:
+        #~ use_smcu:   No
+        #~ smcu_port:  /dev/serial/by-id/
+        #~ use_cmcu:   No
+        #~ cmcu_port:  /dev/serial/by-id/
+
+
+
