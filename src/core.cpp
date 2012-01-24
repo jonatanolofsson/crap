@@ -17,6 +17,8 @@
  * along with CRAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "crap/config.hpp"
+
 #include <iostream>
 #include <fstream>
 #include <dlfcn.h>
@@ -30,7 +32,9 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/timer.hpp>
 
-#include "cpplot.hpp"
+#ifdef CRAP_PLOT
+    #include "cpplot.hpp"
+#endif
 
 
 namespace CRAP {
@@ -99,7 +103,7 @@ namespace CRAP {
         void* dlib;
         std::string module_path;
 
-        module_path = config["module_root"].as<std::string>() + file; //config["module_root"].as<std::string>("")
+        module_path = config["module_root"].as<std::string>() + file;
         std::cout << "Adding module: " << module_path << std::endl;
         dlib = dlopen(module_path.c_str(), RTLD_LAZY);
 
@@ -119,9 +123,6 @@ namespace CRAP {
                 reconfigure(name);
             }
         }
-
-        void* rfn = dlsym(dlib, "run");
-        threads[name] = boost::shared_ptr<boost::thread>(new boost::thread((void(*)())rfn));
     }
 
     /**
@@ -138,7 +139,7 @@ namespace CRAP {
         bool configure = false;
         if(module["configuration"]) {
             if(module["configuration"].IsScalar()) {
-                //~ node_config[name] = YAML::LoadFile(module["configuration"]);
+                node_config[name] = YAML::LoadFile(module["configuration"].as<std::string>());
             } else {
                 node_config[name] = module["configuration"];
             }
@@ -187,13 +188,14 @@ namespace CRAP {
     }
 
     inline void spin() {
+        for(module_map::iterator it = modules.begin(); it != modules.end(); ++it) {
+            void* rfn = dlsym(it->second, "run");
+            assert(rfn != NULL);
+            threads[it->first] = boost::shared_ptr<boost::thread>(new boost::thread((void(*)())rfn));
+        }
         while(true) {
             boost::this_thread::yield();
         }
-    }
-
-    void go() {
-        boost::thread(spin).join();
     }
 
     /**
@@ -202,19 +204,19 @@ namespace CRAP {
      * \param configuration_filename Filename of the current YAML configuration file
      */
     void setup(std::string configuration_filename) {
-        std::ifstream configuration_file;
-        configuration_file.exceptions ( std::ifstream::failbit | std::ifstream::badbit );
+        //~ std::ifstream configuration_file;
+        //~ configuration_file.exceptions ( std::ifstream::failbit | std::ifstream::badbit );
         try {
-            //~ modules = YAML::LoadFile(configuration_filename);
-            configuration_file.open(configuration_filename.c_str());
-            config = YAML::Load(configuration_file);
+            config = YAML::LoadFile(configuration_filename);
+            //~ configuration_file.open(configuration_filename.c_str());
+            //~ config = YAML::Load(configuration_file);
 
             // Link the modules
             std::for_each(config["modules"].begin(), config["modules"].end(), register_module_yaml);
         }
-        catch(std::ifstream::failure e) {
-            std::cerr << "Could not load configuration file: " << e.what() << std::endl;
-        }
+        //~ catch(std::ifstream::failure e) {
+            //~ std::cerr << "Could not load configuration file: " << e.what() << std::endl;
+        //~ }
         catch(YAML::Exception e) {
             std::cerr << "Error parsing the configuration file: " << e.what() << std::endl;
         }
@@ -228,7 +230,9 @@ namespace CRAP {
  */
 int main(int argc, char* argv[])
 {
+#ifdef CRAP_PLOT
     cpplot::glut::init(argc, argv);
+#endif
     /**
      * Variable containing the configuration filename
      */
@@ -244,8 +248,6 @@ int main(int argc, char* argv[])
 
     // Load CRAP configuration
     CRAP::setup(configuration_filename);
-    std::cout << "go!!" << std::endl;
     CRAP::spin();
-    std::cout << "went!" << std::endl;
 }
 
