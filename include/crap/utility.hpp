@@ -17,20 +17,34 @@
  * along with CRAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CRAP_MODULE_HPP_
-#define CRAP_MODULE_HPP_
+#ifndef CRAP_UTILITY_HPP_
+#define CRAP_UTILITY_HPP_
 
-#include "crap/config.hpp"
-#include "crap/communication.hpp"
-#include <boost/thread.hpp>
-#include "yaml-cpp/yaml.h"
-#include "crap/log.hpp"
-#include "crap/core.hpp"
-#include "crap/time.hpp"
+#include <sstream>
 
-#ifdef CRAP_PLOT
-    #include "cpplot.hpp"
-#endif
+namespace CRAP {
+    namespace utility {
 
-//CRAP_MODULE_HPP_
+        /*!
+         * \brief   Calculate the linear array index of a two dimensional matrix
+         * \param   x   Matrix row position
+         * \param   y   Matrix column position
+         * \return  Linear array index
+         */
+        template<unsigned STA, unsigned LDA>
+        inline unsigned index(int x,int y) {
+            return x + STA + LDA*y;
+        }
+
+
+        template <class T>
+        inline std::string to_string (const T& t)
+        {
+            std::stringstream ss;
+            ss << t;
+            return ss.str();
+        }
+    }
+}
+
 #endif

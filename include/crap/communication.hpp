@@ -22,9 +22,10 @@
 
 #include <string>
 #include "crap/types.hpp"
+#include "crap/core.hpp"
+#include <dlfcn.h>
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
-#include <boost/interprocess/sync/scoped_lock.hpp>
 
 namespace CRAP {
     namespace comm {
@@ -39,7 +40,6 @@ namespace CRAP {
         extern boost::mutex listener_lock;
         extern latched_messages_map_t latched_messages;
 
-        typedef boost::interprocess::scoped_lock<boost::mutex> scoped_lock;
 
         template<typename T>
         void send(const std::string topic, const T& msg, const bool latch) {
@@ -56,10 +56,10 @@ namespace CRAP {
             // Enforce message order consistency __in topic__
             // while allowing multiple topics to execute at once
             static boost::mutex send_lock;
-            scoped_lock l(send_lock);
+            boost::mutex::scoped_lock l(send_lock);
 
             {
-                scoped_lock ll(listener_lock);
+                boost::mutex::scoped_lock ll(listener_lock);
                 topic_listeners = listeners.find(topic);
                 if(topic_listeners == listeners.end()) {
                     // Screw this, no-one's listening anyway..
@@ -74,7 +74,7 @@ namespace CRAP {
 
         template<typename T>
         void listen(const std::string topic, void(*fn)(const T&)) {
-            scoped_lock l(listener_lock);
+            boost::mutex::scoped_lock l(listener_lock);
             listener_map_t::iterator listener_list = listeners.find(topic);
             if(listener_list == listeners.end()) {
                 listener_list = listeners.insert(listener_map_t::value_type(topic, listeners_t())).first;
@@ -85,6 +85,14 @@ namespace CRAP {
             if(latched_message != latched_messages.end()) {
                 boost::thread(boost::bind((void(*)(const T&))(*fn), *(T*)(latched_message->second)));
             }
+        }
+
+        template<typename T>
+        T bind(const std::string module, const std::string function_name) {
+            assert(modules[module] != NULL);
+            void* cfn = dlsym(modules[module], function_name.c_str());
+            assert(cfn != NULL);
+            return (T)cfn;
         }
     }
 }

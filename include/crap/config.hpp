@@ -17,20 +17,9 @@
  * along with CRAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CRAP_MODULE_HPP_
-#define CRAP_MODULE_HPP_
+#ifndef CRAP_CONFIG_HPP
+#define CRAP_CONFIG_HPP
 
-#include "crap/config.hpp"
-#include "crap/communication.hpp"
-#include <boost/thread.hpp>
-#include "yaml-cpp/yaml.h"
-#include "crap/log.hpp"
-#include "crap/core.hpp"
-#include "crap/time.hpp"
+#define CRAP_PLOT
 
-#ifdef CRAP_PLOT
-    #include "cpplot.hpp"
-#endif
-
-//CRAP_MODULE_HPP_
-#endif
+#endif // CRAP_CONFIG_HPP

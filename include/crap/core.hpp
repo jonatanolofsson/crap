@@ -20,9 +20,17 @@
 #ifndef CRAP_CORE_HPP_
 #define CRAP_CORE_HPP_
 
+#include "config.hpp"
 #include <boost/timer.hpp>
 namespace CRAP {
     extern boost::timer starting_time;
+
+    typedef std::map<std::string, void*> module_map;
+
+    /**
+     * Map of all loaded modules
+     */
+    extern module_map modules;
 }
 
 #endif

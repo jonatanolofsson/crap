@@ -17,20 +17,23 @@
  * along with CRAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CRAP_MODULE_HPP_
-#define CRAP_MODULE_HPP_
+#ifndef CRAP_CONTROLLER_MODEL_HPP_
+#define CRAP_CONTROLLER_MODEL_HPP_
+#include <Eigen/Core>
 
-#include "crap/config.hpp"
-#include "crap/communication.hpp"
-#include <boost/thread.hpp>
-#include "yaml-cpp/yaml.h"
-#include "crap/log.hpp"
-#include "crap/core.hpp"
-#include "crap/time.hpp"
+namespace CRAP {
+    namespace controller {
+        using namespace Eigen;
+        namespace model {
+            const int number_of_states              = 2;
+            const int number_of_controls            = 1;
+        }
 
-#ifdef CRAP_PLOT
-    #include "cpplot.hpp"
-#endif
+        typedef Matrix<double, model::number_of_controls, 1> control_vector;
+        typedef Matrix<double, model::number_of_controls, 1> reference_vector;
+        typedef Matrix<double, model::number_of_states, 1> state_vector;
+        typedef control_vector(*control_signal_fn)();
+    }
+}
 
-//CRAP_MODULE_HPP_
 #endif
