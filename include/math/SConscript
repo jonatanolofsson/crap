@@ -1,0 +1,26 @@
+def root(x):
+    return '../' + x
+
+Import('env', 'libs', 'CCFLAGS');
+
+dirs = [libs['slicot']]
+
+math = Environment(CPPPATH = map(root, [libs['eigen'], '']))
+
+if CCFLAGS:
+    math.Append(CCFLAGS = CCFLAGS)
+
+LINKFLAGS = ' `pkg-config --libs lapack` '
+math.Append(LINKFLAGS=LINKFLAGS)
+
+
+objects = SConscript(dirs=map(root, dirs))
+#~ otuple = SConscript(dirs=map(root, dirs))
+#~ objects = {}
+#~ for o in otuple:
+    #~ objects.update(o);
+
+objects.update({
+    'math': objects['SB02MD'] + objects['SB02OD'] + objects['MB05OD']
+})
+Return('objects')
