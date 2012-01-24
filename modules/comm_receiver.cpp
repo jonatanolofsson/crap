@@ -36,7 +36,9 @@ void string_recipient(const std::string& msg) {
 
 void double_recipient(const double& msg) {
     //~ std::cout << "Double!" << std::endl;
-    cpplot::figure("Noise") << std::make_pair(CRAP::starting_time.elapsed(), msg);
+    #ifdef CRAP_PLOT
+        cpplot::figure("Noise") << std::make_pair(CRAP::starting_time.elapsed(), msg);
+    #endif
 }
 
 extern "C" {
@@ -46,9 +48,9 @@ extern "C" {
     void run() {
         //~ std::cout << "Listing to timer" << std::endl;
         //~ CRAP::comm::listen<std::clock_t>("time", time_recipient);
-        std::cout << "Listing to latched message" << std::endl;
+        std::cout << "Listening to latched message" << std::endl;
         CRAP::comm::listen<std::string>("latchtest", string_recipient);
-        std::cout << "Listing to double" << std::endl;
+        std::cout << "Listening to double" << std::endl;
         CRAP::comm::listen<double>("doubletest", double_recipient);
         std::cout << "Listener exiting run" << std::endl;
     }

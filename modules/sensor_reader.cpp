@@ -18,29 +18,29 @@
  */
 
 #include "crap/module.hpp"
-#include <string>
-#include "boost/date_time/posix_time/posix_time.hpp"
-#include <boost/random.hpp>
-#include <boost/random/normal_distribution.hpp>
-#include <iostream>
+#include "linkquad/serial_communication.hpp"
 
-#include "math/filtering/filtering.hpp"
+namespace CRAP {
+    namespace sensor_reader {
+        using namespace LinkQuad::comm::serial::data;
+        void smcu(const serial_data<SSMCU::accel_raw, SSMCU::gyro_data> d) {
+            std::cout << "Received acceleration/gyro: " << d.accel_raw[0] << "\t" << d.accel_raw[1] << "\t" << d.accel_raw[2] << "\t" << d.gyro_data[0] << "\t" << d.gyro_data[1] << "\t" << d.gyro_data[2] << "\t" << std::endl;
+        }
+
+        YAML::Node config;
+    }
+}
+
 
 extern "C" {
+    using namespace CRAP::sensor_reader;
+    void configure(YAML::Node& c) {
+        config = c;
+    }
+
     void run() {
-        using namespace CRAP::filtering;
-        boost::mt19937 rng(std::time(0));
-        boost::normal_distribution<> nd(0.0, 1.0);
-
-        boost::variate_generator<boost::mt19937&, boost::normal_distribution<> > var_nor(rng, nd);
-
-        observation<1> o;
-        o.R(0) = 1.0;
-        CRAP::comm::send<std::string>("latchtest", "Latched string", true);
-        while(true) {
-            o.z(0) = var_nor();
-            CRAP::comm::send<observation<1> >("tachometer", o);
-            boost::this_thread::sleep(boost::posix_time::milliseconds(50));
+        if(config["use_smcu"]) {
+            LinkQuad::comm::serial::listen<SSMCU::Part>(config["smcu_port"], smcu);
         }
     }
 }
