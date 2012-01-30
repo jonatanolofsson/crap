@@ -42,9 +42,9 @@ namespace CRAP {
             //~ std::cout << "Position: " << filter.x(0) << std::endl;
             #ifdef CRAP_PLOT
                 using namespace cpplot;
-                figure("Observer")->subplot(3,1,1)->gco<Line>()->set_capacity(30*5) << std::make_pair(CRAP::starting_time.elapsed(), filter.x(0));
-                figure("Observer")->subplot(3,1,2)->gco<Line>()->set_capacity(30*5) << std::make_pair(CRAP::starting_time.elapsed(), filter.x(1));
-                figure("Observer")->subplot(3,1,3)->gco<Line>()->set_capacity(30*5) << std::make_pair(CRAP::starting_time.elapsed(), u()(0));
+                figure("Observer")->subplot(3,1,1)->title("Position")->gco<Line>()->set_capacity(30*5) << std::make_pair(CRAP::starting_time.elapsed(), filter.x(0));
+                figure("Observer")->subplot(3,1,2)->title("Velocity")->gco<Line>()->set_capacity(30*5) << std::make_pair(CRAP::starting_time.elapsed(), filter.x(1));
+                figure("Observer")->subplot(3,1,3)->title("Control signal")->gco<Line>()->set_capacity(30*5) << std::make_pair(CRAP::starting_time.elapsed(), u()(0));
             #endif
         }
 
