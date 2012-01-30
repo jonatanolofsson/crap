@@ -24,9 +24,9 @@
 #include <boost/lexical_cast.hpp>
 #include <iostream>
 
-#define LOG_INFO ::CRAP::log::logger(::CRAP::log::s_info, __FILE__, BOOST_CURRENT_FUNCTION, __LINE__)
-#define LOG_WARNING ::CRAP::log::logger(::CRAP::log::s_warning, __FILE__, BOOST_CURRENT_FUNCTION, __LINE__)
-#define LOG_ERROR ::CRAP::log::logger(::CRAP::log::s_error, __FILE__, BOOST_CURRENT_FUNCTION, __LINE__)
+#define LOG_INFO ::CRAP::log::logger(::CRAP::log::s_info, __FILE__, BOOST_CURRENT_FUNCTION, __LINE__, std::cerr)
+#define LOG_WARNING ::CRAP::log::logger(::CRAP::log::s_warning, __FILE__, BOOST_CURRENT_FUNCTION, __LINE__, std::cerr)
+#define LOG_ERROR ::CRAP::log::logger(::CRAP::log::s_error, __FILE__, BOOST_CURRENT_FUNCTION, __LINE__, std::cerr)
 
 namespace CRAP {
     namespace log {
@@ -72,17 +72,19 @@ namespace CRAP {
                 std::string file;
                 std::string function;
                 int line;
+                std::ostream& stream;
 
             public:
-                logger(severity_t s, const std::string file_, const std::string function_, const int line_) {
-                    severity = s;
-                    file = file_;
-                    function = function_;
-                    line = line_;
-                }
+                logger(severity_t severity_, const std::string file_, const std::string function_, const int line_, std::ostream& stream_)
+                    :   severity(severity_),
+                        file(file_),
+                        function(function_),
+                        line(line_),
+                        stream(stream_)
+                {}
 
                 void operator<<(const std::string msg) {
-                    std::cout
+                    stream
                     << bash_color(magenta) << "Log ["
                     << bash_color(severity_colormap[severity])
                     << severity_t_map[severity]
@@ -95,7 +97,6 @@ namespace CRAP {
                     << bash_color() << std::endl;
                 }
         };
-
     }
 }
 
