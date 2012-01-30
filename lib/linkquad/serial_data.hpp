@@ -342,11 +342,10 @@ namespace LinkQuad {
                     {
                         DataRequestPart(const uint8_t everyNth_, const uint8_t* ids_, const uint8_t ids_cnt_) {
                             assert(ids_cnt_ <= N);
-                            everyNth_t::everyNth = everyNth_;
-                            memcpy(ids_t<N>::ids, ids_, ids_cnt_);
-                            ids_cnt_t::ids_cnt = ids_cnt_;
-                            serial_data<request_part::everyNth_t, request_part::ids_t<N>, request_part::ids_cnt_t>
-                                ::metadata.packet_type = TYPE;
+                            this->everyNth = everyNth_;
+                            memcpy(this->ids, ids_, ids_cnt_);
+                            this->ids_cnt = ids_cnt_;
+                            this->metadata.packet_type = TYPE;
                         }
                     };
                 }
