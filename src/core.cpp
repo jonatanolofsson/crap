@@ -42,6 +42,7 @@ namespace CRAP {
     typedef std::map<std::string, void*> module_map;
     typedef std::map<std::string, boost::shared_ptr<boost::thread> > thread_map;
     typedef void(*configuration_function)(YAML::Node&);
+    typedef void(*close_function)();
     typedef std::map<std::string, configuration_function> configuration_map;
 
     /**
@@ -152,12 +153,18 @@ namespace CRAP {
      * Join a thread and remove it from the list of running threads
      * \param key Name of the module whos thread to close down.
      */
-    void close_thread(const std::string key) {
-        threads[key]->interrupt();
-        if(!threads[key]->timed_join(boost::posix_time::milliseconds(5000))) {
+    void close_thread(const std::string name) {
+        void* cfn = dlsym(modules[name], "shutdown");
+        if(cfn == NULL) {
+            threads[name]->interrupt();
+            std::cerr << "No function 'close' was found, interrupting" << std::endl;
+        } else {
+            ((close_function)cfn)();
+        }
+        if(!threads[name]->timed_join(boost::posix_time::milliseconds(5000))) {
             std::cerr << "Failed to join thread within five seconds. Dropping thread" << std::endl;
         }
-        threads.erase(key);
+        threads.erase(name);
     }
 
     /**
