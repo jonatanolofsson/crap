@@ -17,6 +17,7 @@ set(MODULES
     comm_receiver
     observer
     #~ sensor_reader
+    logic
 )
 foreach(module ${MODULES})
     add_library(${module} SHARED ${module}.cpp)
@@ -29,5 +30,9 @@ endforeach(module)
 add_library(controller SHARED controller.cpp)
 set_target_properties(controller PROPERTIES PREFIX "")
 target_link_libraries(controller
+    ${Boost_LIBRARIES}
     slicot_control
-    ${Boost_LIBRARIES})
+)
+
+
+add_subdirectory("logic")
