@@ -31,6 +31,7 @@ namespace CRAP {
             bool first;
 
             frequency_t(double f) : dt(1.0/f), first(true) {}
+            frequency_t() : first(true) {}
         };
 
 
