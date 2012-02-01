@@ -6,10 +6,10 @@ modules:
 
  -  name: sender
     file: comm_sender.so
-
- -  name: receiver
-    file: comm_receiver.so
-    configuration: test
+#~
+ #~ -  name: receiver
+    #~ file: comm_receiver.so
+    #~ configuration: test
 
  -  name: observer
     file: observer.so
@@ -27,5 +27,11 @@ modules:
         #~ use_cmcu:   No
         #~ cmcu_port:  /dev/serial/by-id/
 
-
-
+ -  name: logic
+    file: logic.so
+    configuration:
+        frequency: 50
+        initial_mode: hover
+        modes:
+            directory: flightmodes/
+            extension: .so

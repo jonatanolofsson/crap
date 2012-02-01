@@ -21,4 +21,8 @@ add_library(slicot_control
     SB02OW.f
     SB02OY.f
 )
-target_link_libraries(slicot_control ${LAPACK_LIBRARIES})
+
+option(LINK_LAPACK On)
+if(LINK_LAPACK)
+    target_link_libraries(slicot_control ${LAPACK_LIBRARIES})
+endif(LINK_LAPACK)
