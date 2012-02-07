@@ -27,6 +27,7 @@ namespace CRAP {
     namespace logic {
         namespace governor {
             void configure(YAML::Node& c);
+            bool load_mode(const std::string mode, const std::string fn);
             void switch_mode(const std::string& mode);
             void tick();
         }

@@ -73,5 +73,6 @@ extern "C" {
 
     void run() {
         comm::listen("/state_estimate", controller::calculate_control_signal);
+        //~ comm::listen("/control_reference", controller::set_control_reference);
     }
 }

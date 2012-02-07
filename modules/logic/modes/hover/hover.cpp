@@ -17,7 +17,6 @@
  * along with CRAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "hover.hpp"
 #include <iostream>
 #include <Eigen/Core>
 #include "modules/observer/model.hpp"
@@ -28,7 +27,7 @@ extern "C" {
     using namespace Eigen;
     using namespace observer::model;
 
-    Vector3d target_state;
+    Matrix<double, 1,1> reference_position;
 
     typedef state_vector(*state_fn)();
     state_fn get_state = comm::bind<state_fn>("observer", "get_state");
@@ -36,13 +35,7 @@ extern "C" {
     void* hover() {
         std::cout << "Hovering state 1" << std::endl;
         state_vector current_state = get_state();
-        target_state.x() = current_state(state::position);
-        return (void*)&hover2;
-    }
-
-    void* hover2() {
-        std::cout << "Hovering state 2" << std::endl;
-
-        return (void*)&hover2;
+        reference_position.x() = current_state(state::position);
+        return (NULL);
     }
 }

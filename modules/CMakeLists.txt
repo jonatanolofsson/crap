@@ -11,10 +11,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 
 # Modules with default configuration
 set(MODULES
-    #~ testmodule
     comm_sender
     comm_receiver
-    #~ sensor_reader
 )
 
 # Include directories
@@ -22,6 +20,7 @@ set(SUBDIRS
     logic
     controller
     observer
+    sensor_reader
 )
 
 

@@ -4,6 +4,7 @@
 #include "modules/logic/governor.hpp"
 #include <dlfcn.h>
 #include "crap/state_engine.hpp"
+#include <iostream>
 
 namespace CRAP {
     namespace logic {
@@ -21,13 +22,13 @@ namespace CRAP {
                 config = c;
             }
 
-            bool load_mode(const std::string mode) {
+            bool load_mode(const std::string mode, const std::string fn) {
                 if(modes.find(mode) != modes.end()) return true;
                 void* m;
                 m = dlopen((config["modes"]["directory"].as<std::string>("") + mode + config["modes"]["extension"].as<std::string>(".so")).c_str(), RTLD_LAZY);
                 if(m) {
                     void* f;
-                    f = dlsym(m, mode.c_str());
+                    f = dlsym(m, fn.c_str());
                     if(f) {
                         modes[mode] = f;
                         mode_handles[mode] = m;
@@ -46,7 +47,7 @@ namespace CRAP {
 
             void switch_mode(const std::string& mode) {
                 if(mode == current_mode) return;
-                if(load_mode(mode)) {
+                if(load_mode(mode, mode)) {
                     state_machine.next(modes[mode]);
                     current_mode = mode;
                 }
