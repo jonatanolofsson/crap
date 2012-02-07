@@ -22,7 +22,4 @@ add_library(slicot_control
     SB02OY.f
 )
 
-option(LINK_LAPACK On)
-if(LINK_LAPACK)
-    target_link_libraries(slicot_control ${LAPACK_LIBRARIES})
-endif(LINK_LAPACK)
+target_link_libraries(slicot_control gfortran blas ${LAPACK_LIBRARIES})
