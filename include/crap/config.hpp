@@ -20,6 +20,6 @@
 #ifndef CRAP_CONFIG_HPP
 #define CRAP_CONFIG_HPP
 
-/* #undef CRAP_PLOT */
+#define CRAP_PLOT
 
 #endif // CRAP_CONFIG_HPP

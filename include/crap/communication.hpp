@@ -26,6 +26,7 @@
 #include <dlfcn.h>
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
+#include <algorithm>
 
 namespace CRAP {
     namespace comm {
@@ -79,7 +80,9 @@ namespace CRAP {
             if(listener_list == listeners.end()) {
                 listener_list = listeners.insert(listener_map_t::value_type(topic, listeners_t())).first;
             }
-            listener_list->second.push_back((listener_t)fn);
+            if(std::find(listener_list->second.begin(), listener_list->second.end(), (listener_t)fn) == listener_list->second.end()) { // Don't add duplicate callbacks to same function
+                listener_list->second.push_back((listener_t)fn);
+            }
 
             latched_messages_map_t::iterator latched_message = latched_messages.find(topic);
             if(latched_message != latched_messages.end()) {
