@@ -19,13 +19,13 @@ modules:
     file: controller.so
     configuration: controller_config.yaml
 
- #~ -  name: sensor_reader
-    #~ file: sensor_reader.so
-    #~ configuration:
-        #~ use_smcu:   No
-        #~ smcu_port:  /dev/serial/by-id/
-        #~ use_cmcu:   No
-        #~ cmcu_port:  /dev/serial/by-id/
+ -  name: sensor_reader
+    file: sensor_reader.so
+    configuration:
+        use_smcu:   Yes
+        smcu_port:  /dev/ttyS0
+        use_cmcu:   No
+        cmcu_port:  /dev/ttyS2
 
  -  name: logic
     file: logic.so
