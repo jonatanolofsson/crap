@@ -63,6 +63,8 @@ namespace LinkQuad {
                 if(fd < 0) {
                     std::cerr << "ERROR: Device NOT open!\nCheck the port name (" << portname << ") and try again" << std::endl;
                     exit(0);
+                } else {
+                    std::cout << "Port " << portname << " opened with fd " << fd << std::endl;
                 }
                 //Set all the options
                 struct termios termios_opt;
@@ -92,9 +94,12 @@ namespace LinkQuad {
                     if(!fd) {
                         fd = serial_ports[portname] = configure_port(portname);
                     }
+                    serial_talker* talker = serial_talkers.find(portname);
+                    if(talker == serial_talkers.end()) {
+                        talker = serial_talkers[portname] = new serial_talker(fd);
+                    }
                 pthread_mutex_unlock(&portmap_lock);
-
-                new serial_talker<datatype>(message, fd);
+                talker->send(message);
             }
 
 
@@ -112,11 +117,19 @@ namespace LinkQuad {
 
                 CMD_TYPE request(every_nth, datatype::get_ids(), datatype::get_count());
                 using namespace data;
-                send(portname, static_cast<const serial_data<request_part::everyNth_t, request_part::ids_t<sizeof(CMD_TYPE::ids)>, request_part::ids_cnt_t>& >(request));
+                send(portname, static_cast<
+                    const serial_data<
+                        request_part::everyNth_t,
+                        request_part::ids_t<CMD_TYPE::NUM_IDS>,
+                        request_part::ids_cnt_t
+                    >&
+                >(request));
                 serial_listeners[portname] = new serial_listener<datatype>(callback, fd);
             }
 
-            #undef tpln
+
+            #undef tplname
+            #undef tpldef
         }
     }
 }

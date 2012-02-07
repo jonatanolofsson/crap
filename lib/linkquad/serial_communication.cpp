@@ -25,13 +25,18 @@
 namespace LinkQuad {
     namespace comm {
         namespace serial {
-
             typedef std::map<std::string, int> fdmap;
             fdmap serial_ports;
             pthread_mutex_t portmap_lock = PTHREAD_MUTEX_INITIALIZER;
 
             typedef std::map<std::string, serial_base*> listener_map;
             listener_map serial_listeners;
+
+            typedef std::map<std::string, serial_talker*> talker_map;
+            talker_map serial_talkers;
+
+            typedef std::map<int, pthread_mutex_t*> mutexmap;
+            mutexmap talker_mutexmap;
         }
     }
 }
