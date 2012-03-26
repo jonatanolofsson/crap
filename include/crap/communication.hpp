@@ -40,24 +40,54 @@ namespace CRAP {
         extern listener_map_t listeners;
         extern boost::mutex listener_lock;
         extern latched_messages_map_t latched_messages;
+        extern messagequeues_t messagequeues;
+
 
 
         template<typename T>
-        void send(const std::string topic, const T& msg, const bool latch) {
-            listener_map_t::iterator topic_listeners;
-
-            if(latch) {
-                latched_messages_map_t::iterator lmsg = latched_messages.find(topic);
-                if(lmsg != latched_messages.end()) {
-                    delete (T*)(lmsg->second);
+        class MessageQueue : public messagequeue_base_t {
+            std::list<T*> queue;
+            boost::mutex queue_lock;
+            public:
+                boost::condition_variable cond;
+                void push(const T& msg) {
+                    boost::mutex::scoped_lock l(queue_lock);
+                    queue.push_back(new T(msg));
+                    //~ void* m = std::malloc(sizeof(T));
+                    //~ memcpy(m, &msg, sizeof(T));
+                    //~ queue.push_back((T*)m);
+                    cond.notify_one();
                 }
-                latched_messages[topic] = (void*) new T(msg);
-            }
+                T* get_first() {
+                    boost::unique_lock<boost::mutex> l(queue_lock);
+                    if(queue.size() == 0) {
+                        cond.wait(l);
+                    }
+                    return queue.front();
+                }
+                void free_first() {
+                    boost::mutex::scoped_lock l(queue_lock);
+                    std::free(queue.front());
+                    queue.pop_front();
+                }
+        };
 
-            // Enforce message order consistency __in topic__
-            // while allowing multiple topics to execute at once
-            static boost::mutex send_lock;
-            boost::mutex::scoped_lock l(send_lock);
+        template<typename T>
+        void topic_sender(MessageQueue<T>* queue, listeners_t* topic_listeners) {
+            T* message;
+            message = queue->get_first();
+            while(true) {
+                for(listeners_t::iterator fn = topic_listeners->begin(); fn != topic_listeners->end(); ++fn) {
+                    ((void(*)(const T&))(*fn))(*message);
+                }
+                queue->free_first();
+                message = queue->get_first();
+            }
+        }
+
+        template<typename T>
+        void broadcast(const std::string topic, const T& msg) {
+            listener_map_t::iterator topic_listeners;
 
             {
                 boost::mutex::scoped_lock ll(listener_lock);
@@ -69,8 +99,38 @@ namespace CRAP {
             }
 
             for(listeners_t::iterator fn = topic_listeners->second.begin(); fn != topic_listeners->second.end(); ++fn) {
-                boost::thread(boost::bind((void(*)(const T&))(*fn), msg));
+                ((void(*)(const T&))(*fn))(msg);
             }
+        }
+
+
+        template<typename T>
+        void send(const std::string topic, const T& msg, const bool latch) {
+            listener_map_t::iterator topic_listeners;
+            if(latch) {
+                latched_messages_map_t::iterator lmsg = latched_messages.find(topic);
+                if(lmsg != latched_messages.end()) {
+                    delete (T*)(lmsg->second);
+                }
+                latched_messages[topic] = (void*) new T(msg);
+            }
+
+            {
+                boost::mutex::scoped_lock ll(listener_lock);
+                topic_listeners = listeners.find(topic);
+                if(topic_listeners == listeners.end()) {
+                    // Screw this, no-one's listening anyway..
+                    return;
+                }
+            }
+
+            messagequeues_t::iterator queue = messagequeues.find(topic);
+            if(queue == messagequeues.end()) {
+                MessageQueue<T>* q = new MessageQueue<T>();
+                queue = messagequeues.insert(messagequeues_t::value_type(topic, dynamic_cast<messagequeue_base_t*>(q))).first;
+                boost::thread(boost::bind(topic_sender<T>, q, &topic_listeners->second));
+            }
+            dynamic_cast<MessageQueue<T>* >((queue->second))->push(msg);
         }
 
         template<typename T>

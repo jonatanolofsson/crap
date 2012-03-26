@@ -22,29 +22,100 @@
 
 #include <Eigen/Core>
 #include <Eigen/LU>
-
 namespace CRAP {
     namespace control {
         using namespace Eigen;
 
-        template<int number_of_states, int number_of_controls>
+        template<int number_of_states, int number_of_controls, typename scalar = base_float_t>
         struct linear_model {
-            typedef Matrix<double, number_of_states, number_of_states> state_matrix;
-            typedef Matrix<double, number_of_states, number_of_controls> control_matrix;
-            typedef Matrix<double, number_of_controls, number_of_states> state_selection_matrix;
-            typedef Matrix<double, number_of_controls, number_of_controls> state_weight_matrix;
-            typedef Matrix<double, number_of_controls, number_of_controls> input_weight_matrix;
+            typedef Matrix<scalar, number_of_states, number_of_states> state_matrix;
+            typedef Matrix<scalar, number_of_states, number_of_states> state_weight_matrix;
+            typedef Matrix<scalar, number_of_states, number_of_controls> control_matrix;
+            typedef Matrix<scalar, number_of_controls, number_of_controls> control_weight_matrix;
+            typedef Matrix<scalar, number_of_controls, number_of_states> feedforward_selection_matrix;
 
             char DICO; ///< 'D'iscrete or 'C'continous (default) model
 
             state_matrix A;
             control_matrix B;
-            state_selection_matrix M;
+            feedforward_selection_matrix M;
 
             state_weight_matrix Q; ///< State weights for LQ-controller
-            input_weight_matrix R; ///< Signal weights for LQ-controller
-            linear_model() : DICO('C'){}
+            control_weight_matrix R; ///< Signal weights for LQ-controller
+            linear_model() : DICO('C'){A.setZero(); B.setZero(); Q.setIdentity(); R.setIdentity(); M.setZero();}
         };
+
+
+        template<int number_of_states, int number_of_controls, int starting_state = 0, int starting_control = 0, typename scalar = base_float_t, typename Derivedf, typename Derivedx, typename Derivedu, typename DerivedA, typename DerivedB>
+        void system_jacobian(
+            Derivedf f,
+            const Derivedx& x0,
+            const Derivedu& u0,
+            DerivedA& A,
+            const scalar delta = 1e-3)
+        {
+            const scalar div = 0.5/delta;
+
+            Derivedx x(x0);
+            for(unsigned int i = starting_state; i < number_of_states + starting_state; ++i) {
+                x[i] += delta;
+                A.col(i-starting_state) = div*f(x,u0).template segment<number_of_states>(starting_state);
+                x[i] = x0[i]-delta;
+                A.col(i-starting_state) -= div*f(x,u0).template segment<number_of_states>(starting_state);
+                x[i] = x0[i];
+            }
+        }
+
+        template<int number_of_states, int number_of_controls, int starting_state = 0, int starting_control = 0, typename scalar = base_float_t, typename Derivedf, typename Derivedx, typename Derivedu, typename DerivedA, typename DerivedB>
+        void control_jacobian(
+            Derivedf f,
+            const Derivedx& x0,
+            const Derivedu& u0,
+            DerivedB& B,
+            const scalar delta = 1e-3)
+        {
+            const scalar div = 0.5/delta;
+
+            Derivedu u(u0);
+            for(unsigned int i = starting_control; i < number_of_controls+starting_control; ++i) {
+                u[i] += delta;
+                B.col(i-starting_control) = div*f(x0,u).template segment<number_of_states>(starting_state);
+                u[i] = u0[i] - delta;
+                B.col(i-starting_control) -= div*f(x0,u).template segment<number_of_states>(starting_state);
+                u[i] = u0[i];
+            }
+        }
+
+
+        template<int number_of_states, int number_of_controls, int starting_state = 0, int starting_control = 0, typename scalar = base_float_t, typename Derivedf, typename Derivedx, typename Derivedu, typename DerivedA, typename DerivedB>
+        void jacobians(
+            Derivedf f,
+            const Derivedx& x0,
+            const Derivedu& u0,
+            DerivedA& A,
+            DerivedB& B,
+            const scalar delta = 1e-3)
+        {
+            const scalar div = 0.5/delta;
+
+            Derivedx x(x0);
+            for(unsigned int i = starting_state; i < number_of_states + starting_state; ++i) {
+                x[i] += delta;
+                A.col(i-starting_state) = div*f(x,u0).template segment<number_of_states>(starting_state);
+                x[i] = x0[i]-delta;
+                A.col(i-starting_state) -= div*f(x,u0).template segment<number_of_states>(starting_state);
+                x[i] = x0[i];
+            }
+
+            Derivedu u(u0);
+            for(unsigned int i = starting_control; i < number_of_controls+starting_control; ++i) {
+                u[i] += delta;
+                B.col(i-starting_control) = div*f(x0,u).template segment<number_of_states>(starting_state);
+                u[i] = u0[i] - delta;
+                B.col(i-starting_control) -= div*f(x0,u).template segment<number_of_states>(starting_state);
+                u[i] = u0[i];
+            }
+        }
     }
 }
 

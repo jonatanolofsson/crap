@@ -5,5 +5,4 @@ set_target_properties(${module} PROPERTIES PREFIX "")
 target_link_libraries(${module}
     ${Boost_LIBRARIES}
     linkquad
-    yaml-cpp
 )

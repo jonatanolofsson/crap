@@ -22,7 +22,7 @@
 
 #include "math/control/linear_model.hpp"
 #include <Eigen/Core>
-#include <Eigen/LU>
+#include <Eigen/Cholesky>
 
 namespace CRAP {
     namespace control {
@@ -172,10 +172,11 @@ namespace CRAP {
         *                   computation of the solution matrix X.
         */
         template<int number_of_states, int number_of_controls>
-        int are(const linear_model<number_of_states, number_of_controls>& m, Matrix<double, number_of_states, number_of_states>& X) {
+        int are(const linear_model<number_of_states, number_of_controls>& m, Matrix<double, number_of_states, number_of_states>& X, int aretype = 1) {
             typedef Matrix<double, number_of_states, number_of_states> state_matrix;
-            typedef Matrix<double, number_of_controls, number_of_controls> state_weight_matrix;
-            X = m.M.transpose()*m.Q*m.M;
+            typedef Matrix<double, number_of_states, number_of_states> state_weight_matrix;
+            //~ X = m.M.transpose()*m.Q*m.M;
+            X = m.Q;
             state_matrix A = m.A;
 
             // Protect model in memory from the Fortran
@@ -195,64 +196,70 @@ namespace CRAP {
 
             int N = number_of_states;
             int LDA = number_of_states;
-            state_matrix G = (m.B*m.R.partialPivLu().solve(m.B.transpose().eval()));
+            state_matrix G = (m.B*m.R.ldlt().solve(m.B.transpose().eval()));
             int LDG = number_of_states;
             int LDQ = number_of_states;
 
             double RCOND;
             double WR[2*number_of_states];
             double WI[2*number_of_states];
-            double S[2*number_of_states][2*number_of_states];
+            double S[2*number_of_states*2*number_of_states];
             int LDS = 2*number_of_states;
-            double U[2*number_of_states][2*number_of_states];
+            double U[2*number_of_states*2*number_of_states];
             int LDU = 2*number_of_states;
 
             int IWORK[2*number_of_states];
             int BWORK[2*number_of_states];
             int INFO = 0;
-            {
-                int LDWORK = 12*number_of_states;
-                double DWORK[12*number_of_states];
-                sb02md_(
-                    &DICO, &HINV, &UPLO, &SCAL, &SORT,
-                    &N, A.data(), &LDA, G.data(), &LDG,
-                    X.data(), &LDQ, &RCOND, WR, WI,
-                    (double*)S, &LDS, (double*)U, &LDU,
-                    IWORK, DWORK, &LDWORK, BWORK, &INFO
-                );
-            }
-            //~ std::cout << "InfoMD: " << INFO << std::endl;
 
-            if(INFO == 1) {
-                int LDWORK = 8*(2*number_of_states+1)+20;
-                double DWORK[8*(2*number_of_states+1)+20];
-                char JOBB = 'G';
-                char JOBL = 'Z';
-                char FACT = 'N';
-                int M = number_of_controls;
-                int P = 0;//Not used if FACT = N
-                double L[1];
-                int LDL = number_of_controls;
-                double R[1];
-                int LDR = number_of_controls;
-                double BETA[2*number_of_states];
-                double T[2*number_of_states][2*number_of_states];
-                int LDT = 2*number_of_states;
-                int LDX = number_of_states;
-                double TOL = 1e-5;
+            switch(aretype) {
+                case 1:
+                {
+                    int LDWORK = 12*number_of_states;
+                    double DWORK[12*number_of_states];
+                    sb02md_(
+                        &DICO, &HINV, &UPLO, &SCAL, &SORT,
+                        &N, A.data(), &LDA, G.data(), &LDG,
+                        X.data(), &LDQ, &RCOND, WR, WI,
+                        (double*)S, &LDS, (double*)U, &LDU,
+                        IWORK, DWORK, &LDWORK, BWORK, &INFO
+                    );
+                    if(INFO == 0) return INFO;
+                    std::cout << "InfoMD: " << INFO << std::endl;
+                }
+                case 2:
+                {
+                    std::cout << "are fallback!" << std::endl;
+                    int LDWORK = 8*(2*number_of_states+1)+20;
+                    double DWORK[8*(2*number_of_states+1)+20];
+                    char JOBB = 'G';
+                    char JOBL = 'Z';
+                    char FACT = 'N';
+                    int M = number_of_controls;
+                    int P = 0;//Not used if FACT = N
+                    double L[1];
+                    int LDL = number_of_controls;
+                    double R[1];
+                    int LDR = number_of_controls;
+                    double BETA[2*number_of_states];
+                    double T[2*number_of_states][2*number_of_states];
+                    int LDT = 2*number_of_states;
+                    int LDX = number_of_states;
+                    double TOL = 1e-5;
 
-                state_weight_matrix Qint = m.Q;
+                    state_weight_matrix Qint = m.Q;
 
-                sb02od_(
-                    &DICO, &JOBB, &FACT, &UPLO, &JOBL, &SORT,//6
-                    &N, &M, &P,//9
-                    A.data(), &LDA, G.data(), &LDG, Qint.data(), &LDQ, R, &LDR, L, &LDL,//19
-                    &RCOND, X.data(), &LDX,//22
-                    WR, WI, BETA,//25
-                    (double*)S, &LDS, (double*)T, &LDT, (double*)U, &LDU,//31
-                    &TOL,IWORK,DWORK,&LDWORK,BWORK,&INFO
-                );
-                //~ std::cout << "InfoMO: " << INFO << std::endl;
+                    sb02od_(
+                        &DICO, &JOBB, &FACT, &UPLO, &JOBL, &SORT,//6
+                        &N, &M, &P,//9
+                        A.data(), &LDA, G.data(), &LDG, Qint.data(), &LDQ, R, &LDR, L, &LDL,//19
+                        &RCOND, X.data(), &LDX,//22
+                        WR, WI, BETA,//25
+                        (double*)S, &LDS, (double*)T, &LDT, (double*)U, &LDU,//31
+                        &TOL,IWORK,DWORK,&LDWORK,BWORK,&INFO
+                    );
+                    std::cout << "InfoOD: " << INFO << std::endl;
+                }
             }
 
             return INFO;

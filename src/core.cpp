@@ -33,7 +33,7 @@
 #include <boost/timer.hpp>
 
 #ifdef CRAP_PLOT
-    #include "cpplot.hpp"
+    #include "cpplot/cpplot.hpp"
 #endif
 
 
@@ -44,6 +44,11 @@ namespace CRAP {
     typedef void(*configuration_function)(YAML::Node&);
     typedef void(*close_function)();
     typedef std::map<std::string, configuration_function> configuration_map;
+
+    /// Make argc globally available
+    int argc;
+    /// Make argv globally available
+    char** argv;
 
     /**
      * Global starting time
@@ -215,8 +220,6 @@ namespace CRAP {
         //~ configuration_file.exceptions ( std::ifstream::failbit | std::ifstream::badbit );
         try {
             config = YAML::LoadFile(configuration_filename);
-            //~ configuration_file.open(configuration_filename.c_str());
-            //~ config = YAML::Load(configuration_file);
 
             // Link the modules
             std::for_each(config["modules"].begin(), config["modules"].end(), register_module_yaml);
@@ -229,14 +232,15 @@ namespace CRAP {
         }
     }
 }
-
+using namespace CRAP;
 /**
  * Main function which is run when the program starts
  * The single command-line argument should be a YAML configuration-file with
  * the
  */
-int main(int argc, char* argv[])
+int main(int argc_, char* argv_[])
 {
+    argc = argc_; argv = argv_;
 #ifdef CRAP_PLOT
     cpplot::glut::init(argc, argv);
 #endif

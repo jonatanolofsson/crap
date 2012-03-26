@@ -41,7 +41,7 @@ extern "C" {
     using namespace CRAP;
     void configure(YAML::Node& c) {
         logic::governor::configure(c);
-        logic::frequency = time::frequency_t(c["frequency"].as<double>(50));
+        logic::frequency = time::frequency_t(c["frequency"].as<base_float_t>(30));
         logic::governor::switch_mode(c["initial_mode"].as<std::string>());
     }
 

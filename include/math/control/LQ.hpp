@@ -52,13 +52,12 @@
 #include "math/control/slicot.hpp"
 #include <Eigen/Core>
 #include <Eigen/QR>
-
-//~ #include <iostream>
+#include <fstream>
 
 namespace CRAP {
     namespace control {
         using namespace Eigen;
-
+std::ofstream sout("S.mat");
         /*!
          * \class   LQ
          * \author  Jonatan Olofsson    [jonatan.olofsson@gmail.com]
@@ -71,20 +70,21 @@ namespace CRAP {
          * function parametrized by the cost matrices of the model, where a cost
          * is defined for each combination of states and control signals respectively.
          */
-        template<int number_of_states, int number_of_controls>
+        template<int number_of_states, int number_of_controls, int number_of_references>
         class LQ {
             public:
-                typedef linear_model<number_of_states, number_of_controls> controller_model; ///< Define the linear model type
-                typedef Matrix<double, number_of_controls, 1> control_vector; ///< A control vector contains information about the controller output
-                typedef Matrix<double, number_of_states, number_of_controls> control_matrix; ///< A control matrix relates the controller output to the model response
-                typedef Matrix<double, number_of_states, 1> state_vector; ///< A state vector describes the state in which the system is (currently) in
-                typedef Matrix<double, number_of_states, number_of_states> state_matrix; ///< A state (propagation) matrix describes how the model state evolves in time, given no control
-                typedef Matrix<double, number_of_controls, number_of_states> feedback_matrix; ///< A feedback matrix is used to calculate the optimal control signal, given a current state fo the system, to bring the system to a zero-state
-                typedef Matrix<double, number_of_controls, number_of_states> control_selection_matrix; ///< A control selection matrix is used to select the states of the system that are relevant for control.
-                typedef Matrix<double, number_of_controls, number_of_controls> feedforward_matrix; ///< A feedforward matrix is used to calculate the gain needed on the reference signal to optimally follow the reference
-                typedef Matrix<double, number_of_controls, 1> reference_vector; ///< A reference vector contains the desired state of the controlled signals.
+                typedef double scalar;
+                typedef linear_model<number_of_states, number_of_controls, scalar> controller_model; ///< Define the linear model type
+                typedef Matrix<scalar, number_of_controls, 1> control_vector; ///< A control vector contains information about the controller output
+                typedef Matrix<scalar, number_of_states, number_of_controls> control_matrix; ///< A control matrix relates the controller output to the model response
+                typedef Matrix<scalar, number_of_states, 1> state_vector; ///< A state vector describes the state in which the system is (currently) in
+                typedef Matrix<scalar, number_of_states, number_of_states> state_matrix; ///< A state (propagation) matrix describes how the model state evolves in time, given no control
+                typedef Matrix<scalar, number_of_controls, number_of_states> feedback_matrix; ///< A feedback matrix is used to calculate the optimal control signal, given a current state fo the system, to bring the system to a zero-state
+                typedef Matrix<scalar, number_of_controls, number_of_states> control_selection_matrix; ///< A control selection matrix is used to select the states of the system that are relevant for control.
+                typedef Matrix<scalar, number_of_controls, number_of_controls> feedforward_matrix; ///< A feedforward matrix is used to calculate the gain needed on the reference signal to optimally follow the reference
+                typedef Matrix<scalar, number_of_references, 1> reference_vector; ///< A reference vector contains the desired state of the controlled signals.
 
-            protected:
+            public:
                 control_vector u; ///< u is used for storing the computed control signal
                 feedback_matrix L; ///< Feedback matrix
                 ColPivHouseholderQR<feedforward_matrix> Lr_inv; ///< For numerical reasons, the inverse of the feedforward matrix Lr is stored
@@ -98,7 +98,7 @@ namespace CRAP {
                  * Recalculates the nescessary internally used matrices.
                  * \param   m   Linear model of the same size as the previous
                  */
-                void set_model(const controller_model &m) {
+                void schedule(const controller_model& m) {
                     LQ::m = m;
                     calculate_control_matrices();
                 }
@@ -126,7 +126,7 @@ namespace CRAP {
                  */
                 LQ(const controller_model &m) {
                     u.setZero();
-                    set_model(m);
+                    schedule(m);
                 }
 
                 /*!
@@ -148,7 +148,30 @@ namespace CRAP {
                  */
                 const control_vector& control_signal(const state_vector& x) {
                     /// [2] eq. 9.11: u = L*x, r = 0
-                    u = L*x;
+                    u = -L*x;
+                    return u;
+                }
+
+                /*!
+                 * \brief   Calculate the control signal optimal for following reference
+                 * \param   x   Current state of system
+                 * \param   r   Reference to bring the system to
+                 * \return  Optimal control signal for following reference, given cost matrices of model
+                 */
+                const control_vector& operator()(const state_vector& x, const reference_vector& r) {
+                    /// [2] eq. 9.11: u = Lr*r - L*x
+                    u = Lr_inv.solve(r) - L*x;
+                    return u;
+                }
+
+                /*!
+                 * \brief   Calculate the control signal optimal for bringing the system to the origin
+                 * \param   x   Current state of system
+                 * \return  Optimal control signal, given cost matrices of model
+                 */
+                const control_vector& operator()(const state_vector& x) {
+                    /// [2] eq. 9.11: u = L*x, r = 0
+                    u = -L*x;
                     return u;
                 }
 
@@ -173,6 +196,7 @@ namespace CRAP {
                 void calculate_control_matrices() {
                     state_matrix S; /// S is the PSD solution to the discrete Riccati equation
                     are<number_of_states, number_of_controls>(m, S);
+                    sout << S.format(IOFormat(FullPrecision)) << std::endl;
 
                     if(m.DICO == 'C') { // Continous system
                         //FIXME: Verify
@@ -181,6 +205,7 @@ namespace CRAP {
 
                         ///
                         Lr_inv.compute((m.M*((m.B*L - m.A).householderQr().solve(m.B.eval()))));
+                        //~ std::cout << m.A << std::endl << m.B << std::endl << m.M << std::endl << L << std::endl << S << std::endl << err << std::endl;
                     } else if(m.DICO == 'D') { // Discrete system
                         /// [2] eq. 9.37a: L = (B'SB + Q2)\B'SA
                         L = (m.B.transpose()*S*m.B + m.R).householderQr().solve((m.B.transpose()*S*m.A).eval());
@@ -188,154 +213,6 @@ namespace CRAP {
                         /// [2] eq. 9.38½: Lr*r = ( M * (I + BL - A)\B )\r
                         Lr_inv.compute((m.M*((state_matrix::Identity() + m.B*L - m.A).householderQr().solve(m.B.eval()))));
                     }
-                }
-        };
-
-        /*!
-         * \class   DLQ
-         * \author  Jonatan Olofsson    [jonatan.olofsson@gmail.com]
-         * \date    2011
-         * \brief   A Dynamic Linear Quadratic Regulator
-         *
-         * A Dynamic LQ uses a spe
-         *
-         * @see     LQ
-         */
-        template<int number_of_states, int number_of_controls>
-        class DLQ : public LQ<number_of_states, number_of_controls> {
-            typedef LQ<number_of_states, number_of_controls> parent; ///< Define the parent class. Used for shorter notation only
-            public:
-                typedef linear_model<number_of_states, number_of_controls> controller_model; ///< Define the linear model type
-                typedef Matrix<double, number_of_states, 1> state_vector; ///< A state (propagation) matrix describes how the model state evolves in time, given no control
-                typedef Matrix<double, number_of_controls, 1> reference_vector; ///< A reference vector contains the desired state of the controlled signals.
-                typedef Matrix<double, number_of_controls, 1> control_vector; ///< A control vector contains information about the controller output
-                typedef void(*lmodel_fun)(controller_model&, const state_vector&, const control_vector&); ///< Defines the function handle to call for re-linearization of model
-
-            protected:
-                lmodel_fun linearize; ///< Function-handle to the model relinearization-function
-
-            public:
-                /*!
-                 * \brief   Empty default constructor
-                 */
-                DLQ() : parent() {}
-
-                /*!
-                 * \brief   Construct the controller with a specified linearization function
-                 * \param   f   Reliearization-function
-                 */
-                DLQ(lmodel_fun f) : parent() {
-                    set(f);
-                }
-
-                /*!
-                 * \brief   Set a new relinearization-function
-                 * \param   f   Reliearization-function
-                 */
-                void set_model(lmodel_fun f) {
-                    linearize = f;
-                }
-
-                /*!
-                 * \brief   Calculate the control signal optimal for following reference
-                 * \param   x   Current state of system
-                 * \param   r   Reference to bring the system to
-                 * \return  Optimal control signal for following reference, given cost matrices of model
-                 */
-                const control_vector& control_signal(const state_vector& x, const reference_vector& r) {
-                    linearize(parent::m, x, parent::u);
-                    parent::calculate_control_matrices();
-                    return parent::control_signal(x,r);
-                }
-
-                /*!
-                 * \brief   Calculate the control signal optimal for bringing the system to the origin
-                 * \param   x   Current state of system
-                 * \return  Optimal control signal, given cost matrices of model
-                 */
-                const control_vector& control_signal(const state_vector& x) {
-                    linearize(parent::m, x, parent::u);
-                    parent::calculate_control_matrices();
-                    return parent::control_signal(x);
-                }
-        };
-
-
-
-
-
-        /*!
-         * \class   LQ
-         * \author  Jonatan Olofsson    [jonatan.olofsson@gmail.com]
-         * \date    2011
-         * \brief   A Linear Quadratic Regulator
-         *
-         * A LQR is used to calculate an optimal control signal to bring a linear
-         * system to a desired state, given the system model and an optional reference.
-         * The control signal is optimal in the sense that it minimizes a cost
-         * function parametrized by the cost matrices of the model, where a cost
-         * is defined for each combination of states and control signals respectively.
-         */
-        template<int number_of_states, int number_of_controls>
-        class SLQ {
-            public:
-                typedef Matrix<double, number_of_controls, 1> control_vector; ///< A control vector contains information about the controller output
-                typedef Matrix<double, number_of_states, 1> state_vector; ///< A state vector describes the state in which the system is (currently) in
-                typedef Matrix<double, number_of_controls, 1> reference_vector; ///< A reference vector contains the desired state of the controlled signals.
-                typedef Matrix<double, number_of_controls, number_of_states> feedback_matrix; ///< A feedback matrix is used to calculate the optimal control signal, given a current state fo the system, to bring the system to a zero-state
-                typedef Matrix<double, number_of_controls, number_of_controls> feedforward_matrix; ///< A feedforward matrix is used to calculate the gain needed on the reference signal to optimally follow the reference
-                typedef void(*sched_fun)(feedback_matrix&, feedforward_matrix&, const state_vector&, const reference_vector&); ///< Defines the function handle to call for scheduling of control matrices
-
-            protected:
-                control_vector u; ///< u is used for storing the computed control signal
-                feedback_matrix L; ///< Feedback matrix
-                feedforward_matrix Lr_inv; ///< For numerical reasons, the inverse of the feedforward matrix Lr is stored
-                sched_fun schedule;
-
-            public:
-
-                /*!
-                 * \author  Jonatan Olofsson
-                 * \date    2011
-                 * \brief   Default constructor
-                 */
-                SLQ(sched_fun f) {
-                    u.setZero();
-                    schedule = f;
-                }
-
-                /*!
-                 * \brief   Calculate the control signal optimal for following reference
-                 * \param   x   Current state of system
-                 * \param   r   Reference to bring the system to
-                 * \return  Optimal control signal for following reference, given cost matrices of model
-                 */
-                const control_vector& control_signal(const state_vector& x, const reference_vector& r) {
-                    /// [2] eq. 9.11: u = Lr^-1*r - L*x
-                    schedule(L, Lr_inv, x, r);
-                    u = Lr_inv*r - L*x;
-                    return u;
-                }
-
-                /*!
-                 * \brief   Calculate the control signal optimal for bringing the system to the origin
-                 * \param   x   Current state of system
-                 * \return  Optimal control signal, given cost matrices of model
-                 */
-                const control_vector& control_signal(const state_vector& x) {
-                    /// [2] eq. 9.11: u = L*x, r = 0
-                    reference_vector r; r.setZero();
-                    schedule(L, Lr_inv, x, r);
-                    u = L*x;
-                    return u;
-                }
-
-                /*!
-                 * \brief   Get the current output signal
-                 * \return  The last calculated control signal
-                 */
-                const control_vector& current_control_signal() {
-                    return u;
                 }
         };
     }

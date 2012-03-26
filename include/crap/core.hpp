@@ -31,6 +31,9 @@ namespace CRAP {
      * Map of all loaded modules
      */
     extern module_map modules;
+
+    extern int argc;
+    extern char** argv;
 }
 
 #endif

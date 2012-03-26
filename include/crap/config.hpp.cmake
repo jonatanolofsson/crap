@@ -21,5 +21,6 @@
 #define CRAP_CONFIG_HPP
 
 #cmakedefine CRAP_PLOT
+#cmakedefine CRAP_OUTPUT_DATA
 
 #endif // CRAP_CONFIG_HPP

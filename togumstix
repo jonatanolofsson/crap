@@ -1,0 +1,2 @@
+#!/bin/bash
+scp -r CMakeLists.txt COPYING README cmake configuration.yaml include lib modules src root@192.168.0.1:jonatan/crap/

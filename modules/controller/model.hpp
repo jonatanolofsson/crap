@@ -20,18 +20,30 @@
 #ifndef CRAP_CONTROLLER_MODEL_HPP_
 #define CRAP_CONTROLLER_MODEL_HPP_
 #include <Eigen/Core>
+#include "crap/base_types.hpp"
 
 namespace CRAP {
     namespace controller {
         using namespace Eigen;
         namespace model {
-            const int number_of_states              = 2;
-            const int number_of_controls            = 1;
+            const int number_of_states              = 12;
+            const int number_of_linearized_states   = 12;
+            const int number_of_controls            = 4;
+            const int number_of_references          = 4;
+
+            namespace state {
+                const int roll = 10;
+                const int pitch = 11;
+            }
+        }
+        namespace detail {
+            typedef double scalar;
+            typedef Matrix<scalar, model::number_of_controls, 1> control_vector;
+            typedef Matrix<scalar, model::number_of_references, 1> reference_vector;
         }
 
-        typedef Matrix<double, model::number_of_controls, 1> control_vector;
-        typedef Matrix<double, model::number_of_controls, 1> reference_vector;
-        typedef Matrix<double, model::number_of_states, 1> state_vector;
+        typedef Matrix<base_float_t, model::number_of_controls, 1> control_vector;
+        typedef Matrix<base_float_t, model::number_of_references, 1> reference_vector;
         typedef control_vector(*control_signal_fn)();
     }
 }

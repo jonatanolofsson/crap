@@ -15,5 +15,7 @@ target_link_libraries(crap
     linkquad
 )
 if(CRAP_PLOT)
-    target_link_libraries(crap cpplot)
+    target_link_libraries(crap
+        ${CPPLOT_LIBRARY}
+    )
 endif(CRAP_PLOT)

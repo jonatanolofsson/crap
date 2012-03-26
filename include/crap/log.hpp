@@ -35,7 +35,7 @@ namespace CRAP {
             s_warning,
             s_error
         };
-        const char* severity_t_map[] = {"INFO", "WARNING", "ERROR"};
+        static const char* severity_t_map[] = {"INFO", "WARNING", "ERROR"};
         enum color_t {
             no_color = -1,
             black = 0,

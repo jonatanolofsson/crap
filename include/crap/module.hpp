@@ -27,9 +27,14 @@
 #include "crap/log.hpp"
 #include "crap/core.hpp"
 #include "crap/time.hpp"
+#include "crap/base_types.hpp"
 
 #ifdef CRAP_PLOT
-    #include "cpplot.hpp"
+    #include "cpplot/cpplot.hpp"
+#endif
+
+#ifdef CRAP_OUTPUT_DATA
+    #include <fstream>
 #endif
 
 //CRAP_MODULE_HPP_

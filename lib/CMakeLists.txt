@@ -1,8 +1,4 @@
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fPIC")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-add_subdirectory(yaml-cpp)
-if(CRAP_PLOT)
-    add_subdirectory(cpplot)
-endif(CRAP_PLOT)
 add_subdirectory(slicot)
 add_subdirectory(linkquad)

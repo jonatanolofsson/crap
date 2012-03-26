@@ -49,7 +49,7 @@ namespace LinkQuad {
 
                 #include "converted.hpp"
 
-                
+
                 #define tpldef(z,n,extra) PP_COMMA_IF(n) typename T##n extra
                  #define _nothing(z,n,c) PP_COMMA_IF(n) nothing
                   #define getn(z,w,d) PP_COMMA_IF(w) T##w::n
@@ -79,7 +79,7 @@ namespace LinkQuad {
                                 firstT::set(p); PP_REPEAT(MAX_NUM_DATAMEMBERS, setv,0)
                                 return true;
                             }
-                            size_t marshal(unsigned char* p) {
+                            size_t marshal(unsigned char* p) const {
                                 unsigned char* q = p;
                                 this->firstT::get(p); PP_REPEAT(MAX_NUM_DATAMEMBERS, getv,0)
                                 return (size_t) (p-q);
@@ -108,8 +108,8 @@ namespace LinkQuad {
                     struct DataRequestPart : public serial_data<request_part::everyNth_t, request_part::ids_t<N>, request_part::ids_cnt_t>
                     {
                         static const int NUM_IDS = N;
-                        DataRequestPart(const uint8_t everyNth_, const uint8_t* ids_, const uint8_t ids_cnt_) 
-                            : serial_data<request_part::everyNth_t, request_part::ids_t<N>, request_part::ids_cnt_t>::serial_data() 
+                        DataRequestPart(const uint8_t everyNth_, const uint8_t* ids_, const uint8_t ids_cnt_)
+                            : serial_data<request_part::everyNth_t, request_part::ids_t<N>, request_part::ids_cnt_t>::serial_data()
                         {
                             assert(ids_cnt_ <= N);
                             this->everyNth = everyNth_;

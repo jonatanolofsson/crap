@@ -53,13 +53,16 @@ namespace LinkQuad {
             typedef std::map<std::string, serial_base*> listener_map;
             extern listener_map serial_listeners;
 
+            typedef std::map<std::string, serial_talker*> talker_map;
+            extern talker_map serial_talkers;
+
             #define BAUDRATE B115200
 
             inline int configure_port(const std::string portname)
             {
                 int fd = serial_ports[portname];
                 if(fd > 0) return fd;
-                fd = open(portname.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK /*| O_NDELAY*/);
+                fd = open(portname.c_str(), O_RDWR | O_NOCTTY/* | O_NONBLOCK *//*| O_NDELAY*/);
                 if(fd < 0) {
                     std::cerr << "ERROR: Device NOT open!\nCheck the port name (" << portname << ") and try again" << std::endl;
                     exit(0);
@@ -94,12 +97,12 @@ namespace LinkQuad {
                     if(!fd) {
                         fd = serial_ports[portname] = configure_port(portname);
                     }
-                    serial_talker* talker = serial_talkers.find(portname);
+                    talker_map::iterator talker = serial_talkers.find(portname);
                     if(talker == serial_talkers.end()) {
-                        talker = serial_talkers[portname] = new serial_talker(fd);
+                        talker = serial_talkers.insert(talker_map::value_type(portname, new serial_talker(fd))).first;
                     }
                 pthread_mutex_unlock(&portmap_lock);
-                talker->send(message);
+                talker->second->send(message);
             }
 
 
@@ -124,6 +127,20 @@ namespace LinkQuad {
                         request_part::ids_cnt_t
                     >&
                 >(request));
+                serial_listeners[portname] = new serial_listener<datatype>(callback, fd);
+            }
+
+            template<PP_REPEAT(MAX_NUM_DATAMEMBERS, tpldef, = data::nothing)>
+            void passive_listen(const std::string portname, void(*callback)(const data::serial_data<PP_REPEAT(MAX_NUM_DATAMEMBERS, tplname,)>)) {
+                typedef data::serial_data<PP_REPEAT(MAX_NUM_DATAMEMBERS, tplname,)> datatype;
+                delete serial_listeners[portname];
+
+                pthread_mutex_lock(&portmap_lock);
+                    int fd = serial_ports[portname];
+                    if(!fd) {
+                        fd = serial_ports[portname] = configure_port(portname);
+                    }
+                pthread_mutex_unlock(&portmap_lock);
                 serial_listeners[portname] = new serial_listener<datatype>(callback, fd);
             }
 

@@ -22,15 +22,18 @@
 
 #include <boost/thread/thread.hpp>
 #include <cmath>
+#include "crap/base_types.hpp"
 
 namespace CRAP {
     namespace time {
+        typedef base_float_t dt_t;
         struct frequency_t {
-            double dt; ///< Seconds
+            dt_t dt; ///< Seconds
             boost::timer t;
             bool first;
 
-            frequency_t(double f) : dt(1.0/f), first(true) {}
+            frequency_t(dt_t f) : dt(1.0/f), first(true) {}
+            frequency_t(dt_t t, bool) : dt(t), first(true) {}
             frequency_t() : first(true) {}
         };
 
@@ -40,13 +43,14 @@ namespace CRAP {
                 t.first = false;
             }
             else {
-                double sleep = t.dt - t.t.elapsed();
-                if(sleep < 0.0) {
-                    std::cerr << "Frequency of " << 1.0/double(t.dt) << " Hz not met by " << -sleep << " seconds" << std::endl;
-                }
-                else {
+                dt_t sleep = t.dt - t.t.elapsed();
+                if(sleep > 0.0) {
                     boost::this_thread::sleep(boost::posix_time::microseconds(std::floor(sleep*1e6)));
                 }
+                //~ else {
+                    //~ dt_t freq = 1.0/t.dt;
+                    //~ std::cerr << "Frequency of " << freq << " Hz not met by " << -sleep << " seconds (" << -sleep*freq*100.0 << " %)" << std::endl;
+                //~ }
             }
             t.t.restart();
             return true;

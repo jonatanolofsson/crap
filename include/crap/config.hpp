@@ -21,5 +21,6 @@
 #define CRAP_CONFIG_HPP
 
 #define CRAP_PLOT
+#define CRAP_OUTPUT_DATA
 
 #endif // CRAP_CONFIG_HPP

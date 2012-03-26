@@ -32,6 +32,7 @@ namespace LinkQuad {
             typedef std::map<std::string, serial_base*> listener_map;
             listener_map serial_listeners;
 
+            class serial_talker;
             typedef std::map<std::string, serial_talker*> talker_map;
             talker_map serial_talkers;
 

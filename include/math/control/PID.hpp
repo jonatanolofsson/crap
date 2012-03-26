@@ -52,14 +52,16 @@ namespace control {
      */
     template<int number_of_states>
     class PID  {
-        typedef Matrix<double, number_of_states, number_of_states> gain;
-        typedef Matrix<double, number_of_states, 1> controlsignal;
-        typedef Matrix<double, number_of_states, 1> states;
+        typedef float gain_t;
+        typedef float dt_t;
+        typedef Matrix<gain_t, number_of_states, number_of_states> gain;
+        typedef Matrix<gain_t, number_of_states, 1> controlsignal;
+        typedef Matrix<gain_t, number_of_states, 1> states;
         public:
             gain K;   ///< Proportional gain
             gain Ti_inv;  ///< Integral time
             gain Td;  ///< Derivative time.
-            double Ts; ///< Sampling time
+            dt_t Ts; ///< Sampling time
             controlsignal umin, umax; ///< Control-signal limits
 
         private:
@@ -76,7 +78,7 @@ namespace control {
              * \param   umin    Lower control-signal limit
              * \param   umax    Upper control-signal limit
              */
-            PID(gain K,  gain Ti_inv, gain Td, double Ts, controlsignal umin, controlsignal umax) {
+            PID(gain K,  gain Ti_inv, gain Td, dt_t Ts, controlsignal umin, controlsignal umax) {
                 PID::K = K;
                 PID::Ti_inv = Ti_inv;
                 PID::Td = Td;
@@ -107,12 +109,12 @@ namespace control {
                 states Iadd = K*Ti_inv*Ts*e;
                 u = K*e + I + Iadd + K*Td/Ts*(e - ep);
                 for(int i=0; i<number_of_states; ++i) {
-                    double a = u(i)-umin(i);
+                    gain_t a = u(i)-umin(i);
                     if(a < 0) { // Signal lower than minimum
                         u(i) = umin(i);
                         I(i) += Iadd(i)-a;
                     } else {
-                        double b = u(i)-umax(i);
+                        gain_t b = u(i)-umax(i);
                         if(b > 0) { // Signal larger than maximum
                             u(i) = umax(i);
                             I(i) += Iadd(i)-b;
@@ -145,7 +147,7 @@ namespace control {
             controlsignal current_control_signal() {
                 return u;
             }
-            
+
             /*!
              * \brief   Get current integral parts
              * \return  Latest calculated control-signal
@@ -153,14 +155,14 @@ namespace control {
             states current_integrals() {
                 return I;
             }
-            
-            void init_imc(int state, double Kp, double T, double L, double Tc) {
+
+            void init_imc(int state, gain_t Kp, gain_t T, gain_t L, gain_t Tc) {
                 K(state, state) = (0.5*L + T)/(Kp * (Tc + L));
                 Ti_inv(state, state) = 1/(0.5*L + T);
                 Td(state, state) = L*T/(L + 2*T);
             }
-            
-            
+
+
     };
 }
 

@@ -85,15 +85,15 @@ namespace LinkQuad {
                             if(datacontainer.set(&rcv_buffer[PACKET_INDEX_LENGTH + data_offset], data_length-1)) {
                                 if(callback) callback(datacontainer);
                             } else {
-                                std::cerr << "Data size mismatch. Data length: " << (int)rcv_buffer[PACKET_INDEX_LENGTH] 
-                                    << ". Offset: " << (int)data_offset 
-                                    << ". Length: " << (int)data_length 
+                                std::cerr << "Data size mismatch. Data length: " << (int)rcv_buffer[PACKET_INDEX_LENGTH]
+                                    << ". Offset: " << (int)data_offset
+                                    << ". Length: " << (int)data_length
                                     << ". Packet type: " << (int)datacontainer.metadata.packet_type
                                     << std::endl;
                                 std::cout << "Message: ";
                                 for(int i = 0; i<12; ++i) {
                                     std::cout << (int)rcv_buffer[i] << " ";
-                                } 
+                                }
                                 std::cout << std::endl;
                             }
                         }
@@ -106,11 +106,12 @@ namespace LinkQuad {
                             size_t remaining = reading.length;
                             while(remaining > 0 && !quit_thread) {
                                 if (( serial_recv_byte_count  = ::read( fd, &rcv_buffer[reading.offset], remaining )) < 0 ) {
-                                    std::cerr << "read() failed" << std::endl;
+                                    std::cerr << "read() failed: " << errno << std::endl;
                                     usleep(100);
                                     loop_begin();
                                     remaining = reading.length;
                                 } else {
+                                    //~ if(serial_recv_byte_count>0) std::cout << "Read " << serial_recv_byte_count << std::endl;
                                     remaining -= serial_recv_byte_count;
                                     reading.offset += serial_recv_byte_count;
                                 }
@@ -137,7 +138,6 @@ namespace LinkQuad {
                     }
 
                     ~serial_listener() {
-                        std::cout << "Die!!!!" << std::endl;
                         void* result;
                         quit_thread = true;
                         pthread_join(thread_id, &result);

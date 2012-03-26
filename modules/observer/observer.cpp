@@ -18,84 +18,51 @@
  */
 
 #include "crap/module.hpp"
-#include "math/math.hpp"
-#include "boost/date_time/posix_time/posix_time.hpp"
 #include <string>
 #include <utility>
 
 #include <Eigen/Core>
-#include "modules/observer/model.hpp"
+#include "yaml-cpp/yaml.h"
+#include "modules/model/model.hpp"
 #include "modules/controller/model.hpp"
-#include "math/filtering/ukf.hpp"
+#include "math/filtering/filtering.hpp"
+
+
+#define eul2quat(phi,theta,psi) (sin(phi/2)*cos(theta/2)*cos(psi/2) - cos(phi/2)*sin(theta/2)*sin(psi/2)),(cos(phi/2)*sin(theta/2)*cos(psi/2) + sin(phi/2)*cos(theta/2)*sin(psi/2)),(cos(phi/2)*cos(theta/2)*sin(psi/2) - sin(phi/2)*sin(theta/2)*cos(psi/2)),(cos(phi/2)*cos(theta/2)*cos(psi/2) + sin(phi/2)*sin(theta/2)*sin(psi/2))
+static const CRAP::base_float_t deg = M_PI/180.0;
 
 namespace CRAP {
     namespace observer {
+        typedef filtering::KalmanFilter<model::number_of_states, model::number_of_controls> KF;
         using namespace filtering;
         using namespace model;
+
+        YAML::Node config;
 
         controller::control_signal_fn u;
         KF filter; ///< Filter instance
 
         void publish() {
-            ::CRAP::comm::send<state_vector>("/state_estimate", filter.x);
-            ::CRAP::comm::send<state_covariance_matrix>("/state_estimate/covariance", filter.P);
-            //~ std::cout << "Position: " << filter.x(0) << std::endl;
-            #ifdef CRAP_PLOT
-                using namespace cpplot;
-                figure("Observer")->subplot(3,1,1)->title("Position")->gco<Line>()->set_capacity(30*5) << std::make_pair(CRAP::starting_time.elapsed(), filter.x(0));
-                figure("Observer")->subplot(3,1,2)->title("Velocity")->gco<Line>()->set_capacity(30*5) << std::make_pair(CRAP::starting_time.elapsed(), filter.x(1));
-                figure("Observer")->subplot(3,1,3)->title("Control signal")->gco<Line>()->set_capacity(30*5) << std::make_pair(CRAP::starting_time.elapsed(), u()(0));
-            #endif
+            ::CRAP::comm::broadcast("/state_estimate", filter.x);
         }
 
         namespace observe {
             using namespace Eigen;
 
-            typedef Matrix<double, 1,1> taco_t; taco_t v;
-            const taco_t& h_tachometer(const state_vector& x) {
-                v(0) = x(state::velocity);
-                return v;
-            }
-            void tachometer(const observation<1>& vel) {
-                ukf::observe<model::number_of_states,model::number_of_controls,1>(filter, h_tachometer, vel);
-                publish();
-            }
+
+            //~ typedef Matrix<base_float_t, 3,10> imu_t; imu_t imu_sim;
+            //~ const imu_t& h_imu(const state_vector& x) {
+                //~ Quaternion<state::scalar> q(x(state::quaternion_part_real), x(state::quaternion_part_vector[0]), x(state::quaternion_part_vector[1]), x(state::quaternion_part_vector[2]));
+                //~ q.normalize();
+                //~ return imu_sim;
+            //~ }
+            //~ void imu_measurement(const observation<imu_size>& obs) {
+                //~ ukf::observe<model::number_of_states,model::number_of_controls,>(filter, h_tachometer, obs);
+                //~ publish();
+            //~ }
         }
 
         namespace predict {
-            state_vector xdot; ///< Internal storage for state calculation
-
-            /*!
-             * \brief   Calculate the derivative of the states
-             *
-             * This function contains the expressions for the mathematical
-             * derivatives of each state.
-             * \param   x   Current state
-             * \param   u   Current control signal
-             * \return  The derivative of the states at the point defined by x and u
-             */
-            state_vector& fdot(const state_vector& x, const control_vector& u) {
-                xdot(state::position) = x(state::velocity);
-                xdot(state::velocity) = (-x(state::velocity) + u(control::velocity)); // /config.tau_v;
-                return xdot;
-            }
-
-            /*!
-             * \brief   Predict the filter's next time step
-             *
-             * Using the model, current state and the current control signal,
-             * the state at the next time-step is predicted using a RK4 method
-             * for integrating the state, given the derivatives of the states.
-             * \see     fdot
-             * \param   x   Current state
-             * \param   u   Current control signal
-             * \return  Prediction of state in the next time step
-             */
-            const state_vector& f(const state_vector& x, const control_vector& u) {
-                xdot = math::rk4<model::number_of_states, model::number_of_controls>(fdot, x, u, 1.0/observer::model::frequency);
-                return xdot;
-            }
-
             state_covariance_matrix Q_; ///< Internal storage for state covariance
 
             /*!
@@ -114,11 +81,76 @@ namespace CRAP {
 
             typedef prediction_model_tmpl<model::number_of_states, model::number_of_controls> prediction_model_t;
             prediction_model_t prediction_model(f,Q);
+            #ifdef CRAP_PLOT
+                using namespace cpplot;
+                static const int count = 30*10;
+                auto xplot = figure("Observer")->subplot(5,2,1)->title("Position X")->add<Line>()->set_capacity(count);
+                auto yplot = figure("Observer")->subplot(5,2,2)->title("Position Y")->add<Line>()->set_capacity(count);
+                auto zplot = figure("Observer")->subplot(5,2,3)->title("Position Z")->add<Line>()->set_capacity(count);
+
+                auto vxplot = figure("Observer")->subplot(5,2,6)->title("Velocity X")->add<Line>()->set_capacity(count);
+                auto vyplot = figure("Observer")->subplot(5,2,7)->title("Velocity Y")->add<Line>()->set_capacity(count);
+                auto vzplot = figure("Observer")->subplot(5,2,8)->title("Velocity Z")->add<Line>()->set_capacity(count);
+
+                auto wplot1 = figure("Observer")->subplot(5,1,4)->title("omega_i")->add<Line>()->set("r")->set_capacity(count);
+                auto wplot2 = figure("Observer")->subplot(5,1,4)->add<Line>()->set("g")->set_capacity(count);
+                auto wplot3 = figure("Observer")->subplot(5,1,4)->add<Line>()->set("b")->set_capacity(count);
+                auto wplot4 = figure("Observer")->subplot(5,1,4)->add<Line>()->set("k")->set_capacity(count);
+
+                auto qplot0 = figure("Observer")->subplot(5,1,5)->title("q")->add<Line>()->set("r")->set_capacity(count);
+                auto qploti = figure("Observer")->subplot(5,1,5)->add<Line>()->set("g")->set_capacity(count);
+                auto qplotj = figure("Observer")->subplot(5,1,5)->add<Line>()->set("b")->set_capacity(count);
+                auto qplotk = figure("Observer")->subplot(5,1,5)->add<Line>()->set("k")->set_capacity(count);
+            #endif
 
             void time_update() {
-                ukf::predict<model::number_of_states, model::number_of_controls>(filter, prediction_model, u());
+                //~ std::cout << ":::::::::::::::::::::::::::::" << std::endl;
+                filter.x = model::f(filter.x, u());
+
+                #ifdef CRAP_PLOT
+                    using namespace cpplot;
+                    xplot << std::make_pair(CRAP::starting_time.elapsed(), filter.x(state::position[X]));
+                    yplot << std::make_pair(CRAP::starting_time.elapsed(), filter.x(state::position[Y]));
+                    zplot << std::make_pair(CRAP::starting_time.elapsed(), filter.x(state::position[Z]));
+//~ //~
+                    vxplot << std::make_pair(CRAP::starting_time.elapsed(), filter.x(state::velocity[X]));
+                    vyplot << std::make_pair(CRAP::starting_time.elapsed(), filter.x(state::velocity[Y]));
+                    vzplot << std::make_pair(CRAP::starting_time.elapsed(), filter.x(state::velocity[Z]));
+//~ //~
+                    wplot1 << std::make_pair(CRAP::starting_time.elapsed(), filter.x(state::rotor_omega[0]));
+                    wplot2 << std::make_pair(CRAP::starting_time.elapsed(), filter.x(state::rotor_omega[1]));
+                    wplot3 << std::make_pair(CRAP::starting_time.elapsed(), filter.x(state::rotor_omega[2]));
+                    wplot4 << std::make_pair(CRAP::starting_time.elapsed(), filter.x(state::rotor_omega[3]));
+                    qplot0 << std::make_pair(CRAP::starting_time.elapsed(), filter.x(state::quaternion_part_real));
+                    qploti << std::make_pair(CRAP::starting_time.elapsed(), filter.x(state::quaternion_part_vector[0]));
+                    qplotj << std::make_pair(CRAP::starting_time.elapsed(), filter.x(state::quaternion_part_vector[1]));
+                    qplotk << std::make_pair(CRAP::starting_time.elapsed(), filter.x(state::quaternion_part_vector[2]));
+                #endif
+                //~ ukf::predict<model::number_of_states, model::number_of_controls>(filter, prediction_model, u());
+                //~ filter.x.segment<4>(state::quaternion).normalize();
                 publish();
+                //~ std::cout << ":::::::::::::::::::::::::::::" << std::endl;
             }
+        }
+
+        void init() {
+            filter.x.setZero();
+            filter.x(state::position[X]) = config["initial_state"]["X"].as<state::scalar>(0.0);
+            filter.x(state::position[Y]) = config["initial_state"]["Y"].as<state::scalar>(0.0);
+            filter.x(state::position[Z]) = config["initial_state"]["Z"].as<state::scalar>(0.0);
+            filter.x.segment<4>(state::quaternion) << eul2quat(0*deg, 0*deg, 0*deg);
+            std::cout << "Initial quaternion: " << filter.x.segment<4>(state::quaternion).transpose() << std::endl;
+            filter.x.segment<4>(state::rotor_velocities) <<
+                -config["initial_state"]["rotor_velocities"].as<state::scalar>(0.0), // Forward
+                config["initial_state"]["rotor_velocities"].as<state::scalar>(0.0), // Left
+                -config["initial_state"]["rotor_velocities"].as<state::scalar>(0.0), // Back
+                config["initial_state"]["rotor_velocities"].as<state::scalar>(0.0); // Right
+
+            filter.P.setZero();
+            filter.P.diagonal().setConstant(0.000011);
+
+            predict::Q_.setZero();
+            predict::Q_.diagonal().setConstant(0.0001);
         }
     }
 }
@@ -134,19 +166,17 @@ extern "C" {
     using namespace CRAP;
     using namespace CRAP::observer;
     void configure(YAML::Node& c) {
-        std::cout << "Reconfiguring observer" << std::endl;
-        filter.x << 1,
-                    1;
-        //~ filter.x << c["initial_position"].as<double>(),
-                    //~ c["initial_velocity"].as<double>();
-        filter.P.setIdentity();
+        std::cout << "Reconfiguring observer: " << std::endl << c << std::endl;
+        config = c;
     }
 
     bool running = true;
     time::frequency_t frequency(model::frequency);
 
     void run() {
-        comm::listen("tachometer", observe::tachometer);
+        observer::init();
+
+        //~ comm::listen("tachometer", observe::tachometer);
         observer::u = comm::bind<controller::control_signal_fn>("controller", "control_signal");
 
         while(running && time::ticktock(::frequency)) {

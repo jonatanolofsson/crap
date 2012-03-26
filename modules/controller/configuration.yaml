@@ -1,0 +1,12 @@
+---
+initial_rotorspeed: 150
+control_weight: 0.001
+state_weights:
+    Vx:         10
+    Vy:         10
+    Vz:         10
+    omega_x:    10
+    omega_y:    10
+    omega_z:    100
+    roll:       100
+    pitch:      100

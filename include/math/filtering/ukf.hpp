@@ -40,18 +40,18 @@ namespace CRAP {
                  * @param scale Scaling constant of transform
                  * @return void
                  */
-                template<int number_of_states>
+                template<int number_of_states, typename scalar = base_float_t>
                 void unscented(
-                    Matrix<double, number_of_states, 2*number_of_states+1>& XX,
-                    const Matrix<double, number_of_states, 1>& x,
-                    const Matrix<double, number_of_states, number_of_states>& P,
-                    const double scale)
+                    Matrix<scalar, number_of_states, 2*number_of_states+1>& XX,
+                    const Matrix<scalar, number_of_states, 1>& x,
+                    const Matrix<scalar, number_of_states, number_of_states>& P,
+                    const scalar scale)
                 /*
                  * Generate the unscented point representing a distribution
                  * Fails if scale is negative
                  */
                 {
-                    typedef Matrix<double, number_of_states, number_of_states> state_covariance_matrix;
+                    typedef Matrix<scalar, number_of_states, number_of_states> state_covariance_matrix;
                     // Get a Cholesky factoriation
                     // The original implementation says that it uses the
                     // upper triangular form, but this is not consistent
@@ -79,33 +79,33 @@ namespace CRAP {
              * @param u Control signal
              * @return void. The internal state of the filter is modified.
              */
-            template<int number_of_states, int number_of_controls, int starting_state = 0>
+            template<int number_of_states, int number_of_controls, int starting_state = 0, typename scalar = base_float_t>
             void predict(
-                KalmanFilter<number_of_states, number_of_controls>& filter,
-                const prediction_model_tmpl<number_of_states, number_of_controls>& f,
-                const Matrix<double, number_of_controls, 1>& u,
-                const double alpha = 1e-2, const double beta = 2.0, const double kappa = 0)
+                KalmanFilter<number_of_states, number_of_controls, scalar>& filter,
+                const prediction_model_tmpl<number_of_states, number_of_controls, scalar>& f,
+                const Matrix<scalar, number_of_controls, 1>& u,
+                const scalar alpha = 1e-2, const scalar beta = 2.0, const scalar kappa = 0)
             {
-                Matrix<double, number_of_states, 2*number_of_states+1> XX, fXX;
-                Matrix<double, number_of_states, number_of_states> P;
-                Matrix<double, number_of_states, 1> x;
+                Matrix<scalar, number_of_states, 2*number_of_states+1> XX, fXX;
+                Matrix<scalar, number_of_states, number_of_states> P;
+                Matrix<scalar, number_of_states, 1> x;
                 //~ std::cout << "Pre-time update::::" << std::endl;
                 //~ std::cout << "x:\n" << x << std::endl;
                 //~ std::cout << "P:\n" << P << std::endl;
                 // Create unscented distribution
-                detail::unscented<number_of_states>(
+                detail::unscented<number_of_states, scalar>(
                     XX,
                     filter.x.template block<number_of_states, 1>(starting_state, 0),
                     filter.P.template block<number_of_states, number_of_states>(starting_state, starting_state),
                     alpha*std::sqrt(number_of_states+kappa)
                 ); // Step one complete
-                const double lambda = alpha*alpha*(number_of_states+kappa) - number_of_states;
-                const double norm = 1/(2*alpha*alpha*(number_of_states+kappa)); // 1/[2*(L+lambda)]
+                const scalar lambda = alpha*alpha*(number_of_states+kappa) - number_of_states;
+                const scalar norm = 1/(2*alpha*alpha*(number_of_states+kappa)); // 1/[2*(L+lambda)]
 
                 // Predict points of XX using supplied predict model
                     // State covariance
                 for (std::size_t i = 0; i < (2*number_of_states+1); ++i) {
-                    fXX.col(i) = f.f( XX.col(i) , u);
+                    fXX.col(i) = f.f( XX.col(i) , u );
                 }
 
 
@@ -123,7 +123,7 @@ namespace CRAP {
                 // Center point, premult here by 2 for efficency
                 {
                     fXX.col(0) -= x;
-                    const double w0 = 2.0*(lambda + (1+beta-alpha*alpha)*(alpha*alpha*(number_of_states+kappa)));
+                    const scalar w0 = 2.0*(lambda + (1+beta-alpha*alpha)*(alpha*alpha*(number_of_states+kappa)));
                     P.noalias() = fXX.col(0)*fXX.col(0).transpose()*w0;
                 }
                 // Remaining unscented points
@@ -153,30 +153,30 @@ namespace CRAP {
              * @param z Measured states
              * @return void. The internal state of the filter is modified.
              */
-            template<int number_of_states, int number_of_controls, int number_of_observations, int starting_state = 0>
+            template<int number_of_states, int number_of_controls, int number_of_observations, int starting_state = 0, typename scalar = base_float_t>
             void observe(
-                KalmanFilter<number_of_states, number_of_controls>& filter,
-                const Matrix<double, number_of_observations, 1>& (*h)(const Matrix<double, number_of_states, 1>&),
-                const observation<number_of_observations>& o,
-                const double alpha = 1e-2, const double beta = 2.0, const double kappa = 0)
+                KalmanFilter<number_of_states, number_of_controls, scalar>& filter,
+                const Matrix<scalar, number_of_observations, 1>& (*h)(const Matrix<scalar, number_of_states, 1>&),
+                const observation<number_of_observations, scalar>& o,
+                const scalar alpha = 1e-2, const scalar beta = 2.0, const scalar kappa = 0)
             {
-                Matrix<double, number_of_states, 2*number_of_states+1> XX;
+                Matrix<scalar, number_of_states, 2*number_of_states+1> XX;
 
-                Matrix<double, number_of_observations, (2*number_of_states+1)> zXX;
-                Matrix<double, number_of_observations, 1> z_hat;
-                Matrix<double, number_of_observations,number_of_observations> Pzz;
-                Matrix<double, number_of_states, number_of_observations> Pxz, K;
+                Matrix<scalar, number_of_observations, (2*number_of_states+1)> zXX;
+                Matrix<scalar, number_of_observations, 1> z_hat;
+                Matrix<scalar, number_of_observations,number_of_observations> Pzz;
+                Matrix<scalar, number_of_states, number_of_observations> Pxz, K;
 
                 // Create unscented distribution
-                detail::template unscented<number_of_states>(
+                detail::template unscented<number_of_states, scalar>(
                     XX,
                     filter.x.template block<number_of_states, 1>(starting_state, 0),
                     filter.P.template block<number_of_states, number_of_states>(starting_state, starting_state),
                     alpha*std::sqrt(number_of_states+kappa)
                 ); // Step one complete
 
-                const double lambda = alpha*alpha*(number_of_states+kappa) - number_of_states;
-                const double norm = 1/(2*alpha*alpha*(number_of_states+kappa)); // 1/[2*(L+lambda)]
+                const scalar lambda = alpha*alpha*(number_of_states+kappa) - number_of_states;
+                const scalar norm = 1/(2*alpha*alpha*(number_of_states+kappa)); // 1/[2*(L+lambda)]
 
                 // Predict points of XX using supplied observation model
                 {
@@ -199,7 +199,7 @@ namespace CRAP {
                 // Covariance of observation predict: Xzz
                     // Subtract mean from each point in zXX
 
-                const double w0 = 2.0*(lambda + (1+beta-alpha*alpha)*(alpha*alpha*(number_of_states+kappa)));
+                const scalar w0 = 2.0*(lambda + (1+beta-alpha*alpha)*(alpha*alpha*(number_of_states+kappa)));
                 // Remaining unscented points
                 // Center point, premult here by 2 for efficency
                 {

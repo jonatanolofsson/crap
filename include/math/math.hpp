@@ -21,6 +21,12 @@
 #define CRAP_MATH_HPP_
 
 #include <Eigen/Core>
+#include "crap/base_types.hpp"
+
+#define SQR(x) ((x)*(x))
+#define SQRSGN(x) ((x)*std::abs((x)))
+#define CUBE(x) ((x)*(x)*(x))
+#define POW4(x) ((x)*(x)*(x)*(x))
 
 namespace CRAP {
     namespace math {
@@ -33,15 +39,15 @@ namespace CRAP {
         * \param    h   Length of integration
         * \return   New state, with delta added to previous state
         */
-        template<int number_of_states, int number_of_controls>
-        Matrix<double, number_of_states, 1> rk4(
-            Matrix<double, number_of_states, 1>&(*f)(const Matrix<double, number_of_states, 1>&, const Matrix<double, number_of_controls, 1>&),
-            const Matrix<double, number_of_states, 1>& x,
-            const Matrix<double, number_of_controls, 1>& u,
-            const double h
+        template<int number_of_states, int number_of_controls, typename scalar = base_float_t>
+        Matrix<scalar, number_of_states, 1> rk4(
+            const Matrix<scalar, number_of_states, 1>&(*f)(const Matrix<scalar, number_of_states, 1>&, const Matrix<scalar, number_of_controls, 1>&),
+            const Matrix<scalar, number_of_states, 1>& x,
+            const Matrix<scalar, number_of_controls, 1>& u,
+            const scalar h
             )
         {
-            Matrix<double, number_of_states, 1> k1, k2, k3, k4;
+            Matrix<scalar, number_of_states, 1> k1, k2, k3, k4;
             k1 = f(x,u);
             k2 = f(x+0.5*h*k1, u);
             k3 = f(x+0.5*h*k2, u);
@@ -49,9 +55,19 @@ namespace CRAP {
             return x + h*(k1 + 2*k2 + 2*k3 + k4)*(1/6.);
         }
 
+        /*!
+         * \brief   Calculate the linear array index of a two dimensional matrix
+         * \param   x   Matrix row position
+         * \param   y   Matrix column position
+         * \return  Linear array index
+         */
+        template<unsigned START, unsigned LEADING_DIM>
+        inline unsigned index(int x,int y) {
+            return x + START + LEADING_DIM*y;
+        }
+
         template<class T>
-        inline T floor0(T value)
-        {
+        inline T floor0(T value) {
             if(value < 0.0)
                 return std::ceil( value );
             else
@@ -59,15 +75,17 @@ namespace CRAP {
         }
 
         template<class T>
-        inline T round(T value)
-        {
+        inline T round(T value) {
             return std::floor( value + 0.5 );
         }
 
         template<class T>
-        inline T nearest_angle(T a, T b)
-        {
+        inline T nearest_angle(T a, T b) {
             return a + round<T>((b-a)/(2*M_PI))*2*M_PI;
+        }
+
+        template <typename T> int sign(T val) {
+            return (val > T(0)) - (val < T(0));
         }
     }
 }

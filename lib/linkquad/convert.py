@@ -9,16 +9,16 @@ def repl(m):
     global i
     if m.group('type') == 'typedef':
         return m.group(0)
-        
+
     if m.group('i') is not None:
         i = int(m.group('i'))
-        
+
     name = m.group('name')
     if m.group('n') is not None and m.group('n') is not "N":
         iterate = int(m.group('n'))
     else:
         iterate = 1
-    
+
     iteration = 0
     result = ""
     while iteration < iterate:
@@ -27,8 +27,8 @@ def repl(m):
             + m.group('type') + " type" + ("[N]" if m.group('n') == "N" else "") + "; type " + nname + "; static const size_t size = sizeof(type); " \
             + "static const uint8_t c = 1; static const int n = " + str(i) + "; " \
             + "void set(const uint8_t*& v){memcpy(&" + nname + ", v, sizeof(type)); v += sizeof(type); } " \
-            + "void get(uint8_t*& v){memcpy(v, &" + nname + ", sizeof(type)); v += sizeof(type); } }; " \
-            + ("typedef " + nname + "_t " + nname + ";" if m.group('n') != "N" else "")# + ("\n" if iterate > 1 else "")
+            + "void get(uint8_t*& v) const {memcpy(v, &" + nname + ", sizeof(type)); v += sizeof(type); } }; " \
+            + ("typedef " + nname + "_t " + nname + ";" if m.group('n') != "N" else "") + ("\n" if iteration+1 < iterate  else "")
         i += 1
         iteration += 1
     #~ if iterate > 1:
@@ -39,7 +39,7 @@ def repl(m):
             #~ + "void get(char*& v){memcpy(v, &" + name + ", sizeof(type)); v += sizeof(type); } }; " \
             #~ + "typedef " + name + "_t " + name + ";\n"
     return result
-    
+
 
 with open(infile, 'r') as f:
     with open(outfile, 'w') as o:

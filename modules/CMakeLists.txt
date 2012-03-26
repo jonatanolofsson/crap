@@ -1,26 +1,24 @@
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/modules)
 
-find_package( Boost COMPONENTS thread )
 find_package( Eigen3 )
+find_package( Boost COMPONENTS thread )
 link_directories ( ${Boost_LIBRARY_DIRS} )
 include_directories ( ${Boost_INCLUDE_DIRS} )
 include_directories ( ${Eigen3_INCLUDE_DIR} )
-include_directories(${YAML_CPP_SOURCE_DIR}/include)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 
 # Modules with default configuration
 set(MODULES
     comm_sender
-    comm_receiver
 )
 
 # Include directories
 set(SUBDIRS
+    #~ model
     logic
     controller
     observer
     sensor_reader
+    baselink
 )
 
 
@@ -32,5 +30,5 @@ foreach(module ${MODULES})
 endforeach(module)
 
 foreach(dir ${SUBDIRS})
-add_subdirectory(${dir})
+    add_subdirectory(${dir})
 endforeach(dir)

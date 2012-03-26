@@ -6,29 +6,35 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 endif()
 
 option(CRAP_PLOT ON)
+option(CRAP_OUTPUT_DATA ON)
 configure_file( ${CMAKE_SOURCE_DIR}/include/crap/config.hpp.cmake ${CMAKE_SOURCE_DIR}/include/crap/config.hpp )
 
-set(CMAKE_CXX_FLAGS "-O2 -ggdb -Wall -Wextra")
+
+set(CMAKE_CXX_FLAGS "-O2 -ggdb -Wall -Wextra -std=c++0x")
 
 # add our macro directory to cmake search path
-set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
-
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-
 add_subdirectory(lib)
 
-include_directories(${PROJECT_SOURCE_DIR})
-include_directories(${PROJECT_SOURCE_DIR}/include)
-include_directories(${PROJECT_SOURCE_DIR}/lib)
-include_directories(${YAML_CPP_SOURCE_DIR}/include)
+# add our macro directory to cmake search path
+set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
+set(YAMLCPP_STATIC_LIBRARY ON)
+
+include_directories(
+    ${PROJECT_SOURCE_DIR}
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/lib
+)
 if(CRAP_PLOT)
-    include_directories(${CPPLOT_SOURCE_DIR}/include)
-    include_directories(${CPPLOT_SOURCE_DIR}/lib/gl2ps)
+    find_package(cpplot)
+    message(STATUS "sources: ${CPPLOT_INCLUDE_DIR}")
+    include_directories(${CPPLOT_INCLUDE_DIR})
 endif(CRAP_PLOT)
 include_directories(${linkquad_SOURCE_DIR})
 
 add_subdirectory(src)
 add_subdirectory(modules)
+add_subdirectory(interface)

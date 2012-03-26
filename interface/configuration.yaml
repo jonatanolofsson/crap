@@ -1,0 +1,44 @@
+---
+port: /dev/pts/6
+input_range:
+    - [365,423]
+    - [404,431]
+    - [395,423]
+    - [381,380]
+    - [333,430]
+    - [371,358]
+
+
+output_range:
+    x: 1
+    y: 1
+    z: 1
+    rx: 3
+    ry: 3
+    rz: 3
+
+directories:
+    root: /home/shared/projects/crap/
+    element_files: interface/elements/
+    element_objects: build/elements/
+
+window:
+    id: win
+    width: 800
+    height: 600
+
+    near: 1.0
+    far: 80.0
+
+    children:
+        -   id: camera
+            type: camera
+            children:
+                -   id: skybox
+                    type: skybox
+                -   id: ground
+                    type: ground
+                -   id: flyer
+                    type: flyer
+                    model: mh6.obj
+                    scale: 0.01
