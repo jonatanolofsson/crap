@@ -1,9 +1,7 @@
 ---
 module_root: modules/
+config_root: /home/shared/projects/crap/configuration/
 modules:
- #~ - name: test
-   #~ file: testmodule.so
-
  -  name: sender
     file: comm_sender.so
 
@@ -12,30 +10,35 @@ modules:
     configuration:
         receive_flight_commands: true
         send_flight_data: true
-        port: /dev/pts/7
-        reference_timeout: 10000000.0
+        port: /dev/pts/13
+        reference_timeout: 10.0
 
  -  name: observer
     file: observer.so
-    configuration: /home/shared/projects/crap/modules/observer/configuration.yaml
+    configuration: observer.yaml
+
+ -  name: reality
+    file: reality.so
+    configuration: reality.yaml
 
  -  name: controller
     file: controller.so
-    configuration: /home/shared/projects/crap/modules/controller/configuration.yaml
+    configuration: controller.yaml
 
- #~ -  name: sensor_reader
-    #~ file: sensor_reader.so
-    #~ configuration:
-        #~ use_smcu:   Yes
-        #~ smcu_port:  /dev/ttyS0
-        #~ use_cmcu:   No
-        #~ cmcu_port:  /dev/ttyS2
+ -  name: sensor_reader
+    file: sensor_reader.so
+    configuration: sensor_reader.yaml
+
+ -  name: camera_reader
+    file: camera_reader.so
+    configuration: camera_reader.yaml
 
  -  name: logic
     file: logic.so
     configuration:
         frequency: 50
-        initial_mode: hover
+        initial_mode: acrobat
         modes:
             directory: flightmodes/
+            configuration_directory: /home/shared/projects/crap/configuration/modes/
             extension: .so

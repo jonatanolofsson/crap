@@ -36,14 +36,14 @@ namespace CRAP {
         bool has_control = false;
         Matrix<float, 4, 1> joy;
 
-        void receive_command(const ::CRAP::comm_messages::command_message d) {
+        void receive_command(const ::CRAP::comm_messages::command_message& d) {
             time_of_last_control.restart();
             if(BIT_TST(d.params_8i_0, ::CRAP::comm_messages::TRANSLATION_AND_ROTATION)) {
                 joy <<
                     d.params_32f_0, d.params_32f_1, d.params_32f_2,
                     d.params_32f_3;
                 ++reference_count;
-                    //~ send_reference();
+                //~ send_reference();
                 //~ std::cout << "New reference: " << joy.transpose() << std::endl;
                 has_control = true;
             }
@@ -58,19 +58,23 @@ namespace CRAP {
         }
 
         void button_action(const ::CRAP::comm_messages::button_event& e) {
+            static const std::string modes[] = {
+                {"hover"},
+                {"freeflight"},
+                {"freeflight"},
+                {"ptaminit"},
+                {"ptaminit"},
+                {"landing"},
+                {"landing"},
+                {"acrobat"}
+            };
             using CRAP::comm_messages::button_event;
-            static bool press[2];
-            press[e.button] = e.press;
+            //~ static bool press[8];
+            //~ press[e.button] = e.press;
             if(e.press) {
-                if(e.button == button_event::BUTTONS::LEFT) {
-                    CRAP::comm::send<std::string>("/logic/mode", "hover");
-                }
-                else if(e.button == button_event::BUTTONS::RIGHT) {
-                    if(press[button_event::BUTTONS::LEFT]) {
-                        CRAP::comm::send<std::string>("/logic/mode", "freeflight");
-                    } else  {
-                        CRAP::comm::send<std::string>("/logic/mode", "landing");
-                    }
+                if(e.button < 8) {
+                    std::cout << "Sending command to switch mode to: " << modes[e.button] << std::endl;
+                    CRAP::comm::send<std::string>("/logic/mode", modes[e.button]);
                 }
             }
         }
@@ -79,7 +83,7 @@ namespace CRAP {
             //~ std::cout << "Has control: " << has_control << ". Elapsed time: " << time_of_last_control.elapsed() << std::endl;
             if(has_control && time_of_last_control.elapsed() > config["reference_timeout"].as<double>(1.0)) {
                 has_control = false;
-                //~ std::cout << "Reset control!" << std::endl;
+                std::cout << "Reset control!" << std::endl;
                 joy.setZero(); // FIXME: Better reference from config?
                 time_of_last_control.restart();
                 ++reference_count;
@@ -88,11 +92,12 @@ namespace CRAP {
         }
 
         comm_messages::state_message state_msg;
-        void send_state(const observer::model::state_vector& x) {
-            using namespace observer::model;
-            state_msg.params_32f_0 = x(state::position[X]);
-            state_msg.params_32f_1 = x(state::position[Y]);
-            state_msg.params_32f_2 = x(state::position[Z]);
+        void send_state(const model::state_vector& x) {
+            //~ std::cout << "Sending state: " << x.transpose() << std::endl;
+            using namespace model;
+            state_msg.params_32f_0 = x(state::positions[X]);
+            state_msg.params_32f_1 = x(state::positions[Y]);
+            state_msg.params_32f_2 = x(state::positions[Z]);
 
             state_msg.params_32f_3 = x(state::quaternion_part_real);
             state_msg.params_32f_4 = x(state::quaternion_part_vector[0]);

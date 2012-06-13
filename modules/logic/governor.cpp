@@ -33,7 +33,7 @@ namespace CRAP {
             }
 
             void load_and_configure(const std::string mode) {
-                mode_config[mode] = YAML::LoadFile(config["modes"]["directory"].as<std::string>("") + mode + config["modes"]["configuration_filename"].as<std::string>("configuration.yaml"));
+                mode_config[mode] = YAML::LoadFile(config["modes"]["configuration_directory"].as<std::string>("") + mode + ".yaml");
                 if(mode_config[mode]) {
                     ((configuration_function)modes[mode].second)(mode_config[mode]);
                 }
@@ -60,7 +60,7 @@ namespace CRAP {
                             load_and_configure(mode);
                         } else {
                             std::cout << "No configuration function found" << std::endl;
-                            modes[mode] = modepair_t(f, NULL);
+                            modes[mode] = modepair_t((void*)f, (void*)NULL);
                         }
                         return true;
                     }
@@ -75,6 +75,7 @@ namespace CRAP {
 
 
             void switch_mode(const std::string& mode) {
+                std::cout << "Governor: Received a wish to load " << mode << std::endl;
                 if(mode == current_mode) return;
                 if(load_mode(mode, mode)) {
                     state_machine.next(modes[mode].first);

@@ -29,7 +29,7 @@ extern "C" {
     void configure(YAML::Node& c) {config = c;}
     using namespace CRAP;
     using namespace Eigen;
-    using namespace observer::model;
+    using namespace model;
 
     ::CRAP::controller::reference_vector ref;
     state_vector x;
@@ -44,10 +44,11 @@ extern "C" {
 
     void* descend() {
         x = get_state();
-        if(x(state::position[Z]) > -0.4) {
+        if(x(state::wind_velocities[Z]) < -config["landing_wind_threshold"].as<double>(5.0)) {
             std::cout << "Landing mode 3: Reached ground level." << std::endl;
             ref.setZero();
             CRAP::comm::send("/reference", ref);
+            std::cout << " ::::::::   :::::::::::: Landing has been detected ::::::::: :::::::::::::::" << std::endl;
             return (void*) spin_down;
         }
         CRAP::comm::send("/reference", ref);
@@ -56,7 +57,7 @@ extern "C" {
 
     void* wait_for_halt() {
         x = get_state();
-        if(x.segment<3>(state::velocities).norm() < config["halt_velocity"].as<state::scalar>(0.1)) {
+        if(x.segment<3>(state::velocity).norm() < config["halt_velocity"].as<state::scalar>(0.1)) {
             std::cout << "Landing mode 2: Halted, descending. " << std::endl;
             ref << 0,0,
                 config["descend_speed"].as<state::scalar>(1.0),
@@ -74,6 +75,4 @@ extern "C" {
         CRAP::comm::send("/reference", ref);
         return (void*) wait_for_halt;
     }
-
-
 }

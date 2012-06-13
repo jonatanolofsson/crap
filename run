@@ -1,0 +1,5 @@
+#!/bin/bash
+cd ../tracker/PTAM/PTAM && optirun ./PTAM /dev/pts/8 &
+#~ optirun build/bin/3diface interface/configuration.yaml &
+cd build && optirun ./bin/crap ../configuration/offline.yaml &
+wait

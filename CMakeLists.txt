@@ -7,6 +7,7 @@ endif()
 
 option(CRAP_PLOT ON)
 option(CRAP_OUTPUT_DATA ON)
+option(EXTENDED_MODEL ON)
 configure_file( ${CMAKE_SOURCE_DIR}/include/crap/config.hpp.cmake ${CMAKE_SOURCE_DIR}/include/crap/config.hpp )
 
 
@@ -32,9 +33,9 @@ if(CRAP_PLOT)
     find_package(cpplot)
     message(STATUS "sources: ${CPPLOT_INCLUDE_DIR}")
     include_directories(${CPPLOT_INCLUDE_DIR})
+    add_subdirectory(interface)
 endif(CRAP_PLOT)
 include_directories(${linkquad_SOURCE_DIR})
 
 add_subdirectory(src)
 add_subdirectory(modules)
-add_subdirectory(interface)

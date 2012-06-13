@@ -23,6 +23,11 @@
 #include <boost/current_function.hpp>
 #include <boost/lexical_cast.hpp>
 #include <iostream>
+#include <Eigen/Core>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <algorithm>
 
 #define LOG_INFO ::CRAP::log::logger(::CRAP::log::s_info, __FILE__, BOOST_CURRENT_FUNCTION, __LINE__, std::cerr)
 #define LOG_WARNING ::CRAP::log::logger(::CRAP::log::s_warning, __FILE__, BOOST_CURRENT_FUNCTION, __LINE__, std::cerr)
@@ -96,6 +101,26 @@ namespace CRAP {
                     << bash_color(no_color, true) << msg
                     << bash_color() << std::endl;
                 }
+        };
+
+        class filelogger {
+            std::ofstream file;
+            Eigen::IOFormat formatting;
+            public:
+                template<typename Derived>
+                void operator()(double t, const Eigen::MatrixBase<Derived>& data) {
+                    file << t << "," << data.transpose().format(formatting) << std::endl;
+                }
+                template<typename Derived>
+                void operator()(const Eigen::MatrixBase<Derived>& data) {
+                    file << data.format(formatting) << std::endl;
+                }
+
+                filelogger(std::string filename) : file(filename.c_str()), formatting(Eigen::FullPrecision, Eigen::DontAlignCols, ",", ";\n", "", "", "", "") {}
+                filelogger(std::string filename, std::list<std::string> names, std::string prefix = "") : file(filename.c_str()), formatting(Eigen::FullPrecision, 0, ",", ";\n", "", "", "", "")
+                { for(std::list<std::string>::iterator it = names.begin(); it != names.end();) { file << prefix << *it; if(++it == names.end()) file << std::endl; else file <<  ","; } }
+            private:
+                filelogger(){}
         };
     }
 }

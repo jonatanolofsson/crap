@@ -9,7 +9,7 @@
 using namespace Eigen;
 using namespace CRAP;
 using namespace CRAP::observer;
-using namespace CRAP::observer::model;
+using namespace CRAP::model;
 controller::reference_vector r;
 extern controller::control_vector u;
 extern state_vector x;
@@ -47,20 +47,20 @@ std::ofstream duout("du.mat");
             Block<lmodel_t::state_matrix, controller::model::number_of_linearized_states, controller::model::number_of_linearized_states> A(lmodel.A, 0, 0);
             Block<lmodel_t::control_matrix, controller::model::number_of_linearized_states, controller::model::number_of_controls> B(lmodel.B, 0, 0);
             ::CRAP::control::jacobians<controller::model::number_of_linearized_states, controller::model::number_of_controls, 0>(
-                observer::model::fc, x0, u,
+                model::fc, x0, u,
                 A,
                 B
             );
 
             lmodel.A.block<controller::model::number_of_linearized_states, 1>(0, controller::model::number_of_states)
-                = observer::model::fc(x0, u).segment<controller::model::number_of_linearized_states>(0)
+                = model::fc(x0, u).segment<controller::model::number_of_linearized_states>(0)
                     - A*x0.segment<controller::model::number_of_linearized_states>(0);
         }
 
         //~ std::ofstream Xlin("Xlin.mat");
         void calculate_control_signal(const state_vector& x0) {
             //~ Xlin << x0.transpose() << std::endl;
-            using namespace observer::model;
+            using namespace model;
             linearize(x0, u);
 
             extended_x.segment<controller::model::number_of_linearized_states>(0)
@@ -99,7 +99,7 @@ std::ofstream duout("du.mat");
         }
 
         void init_controller() {
-            using namespace observer::model;
+            using namespace model;
 
             r.setZero();
 

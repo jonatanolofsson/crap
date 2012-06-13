@@ -18,50 +18,51 @@
  */
 
 #include "crap/module.hpp"
+#include "sensor_data.hpp"
+#include "modules/model/model.hpp"
 #include "linkquad/serial_communication.hpp"
 
 #include <iostream>
 #include <iomanip>
+#include "math/filtering/filtering.hpp"
 
 namespace CRAP {
     namespace sensor_reader {
+        using namespace CRAP::sensors;
+        using model::imu::scalar;
+        using namespace Eigen;
         YAML::Node config;
-        base_float_t scales[3];
-        namespace sensors {
-            static const int accelerometer  = 0;
-            static const int gyro           = 1;
-            static const int battery        = 2;
-        }
+        filtering::observation<model::imu::data_size> measurement;
+        Matrix<scalar, model::imu::data_size, 1> scales;
 
         using namespace LinkQuad::comm::serial::data;
         using namespace LinkQuad::comm::serial::data::SSMCU;
-        void smcu(const serial_data<
-            gyro_data_0, gyro_data_1, gyro_data_2,
-            accel_raw_0, accel_raw_1, accel_raw_2,
-            micromag_0, micromag_1, micromag_2,
-            fAlt,
-            system_status, battery_voltage
-        > d) {
-            std::cout
-                << std::setw(12) << (float)d.fAlt
-                << std::setw(12) << (int)d.system_status
-                << std::setw(12) << (int)d.battery_voltage * scales[sensors::battery]
+        void smcu(const imu::serial_data& d) {
 
-                << std::setw(12) << (float)d.accel_raw_0 * scales[sensors::accelerometer]
-                << std::setw(12) << (float)d.accel_raw_1 * scales[sensors::accelerometer]
-                << std::setw(12) << (float)d.accel_raw_2 * scales[sensors::accelerometer]
+            measurement.z <<
+                (scalar)d.accel_raw_0,
+                (scalar)d.accel_raw_1,
+                (scalar)d.accel_raw_2,
 
-                << std::setw(12) << (int)d.gyro_data_0 * scales[sensors::gyro]
-                << std::setw(12) << (int)d.gyro_data_1 * scales[sensors::gyro]
-                << std::setw(12) << (int)d.gyro_data_2 * scales[sensors::gyro]
+                (scalar)d.gyro_data_0,
+                (scalar)d.gyro_data_1,
+                (scalar)d.gyro_data_2
 
-                << std::setw(12) << (int)d.micromag_0
-                << std::setw(12) << (int)d.micromag_1
-                << std::setw(12) << (int)d.micromag_2
+                //~ (scalar)d.fAlt
 
-                << std::endl;
+                //~ (scalar)d.micromag_0,
+                //~ (scalar)d.micromag_1,
+                //~ (scalar)d.micromag_2
+            ;
+
+            //~ std::cout << "Received: " << measurement.z.transpose() << std::endl;
+
+            measurement.z.array() *= scales.array();
+            //~ measurement.z.segment<3>(model::imu::magnetometer).normalize();
+            //~ std::cout << "Scaled: " << measurement.z.transpose() << std::endl;
+
+            CRAP::comm::send(config["channels"]["imu"].as<std::string>("/imu"), measurement);
         }
-
     }
 }
 
@@ -71,15 +72,37 @@ extern "C" {
     using namespace CRAP::sensor_reader;
     using namespace LinkQuad::comm::serial::data;
     void configure(YAML::Node& c) {
+        using model::X;
+        using model::Y;
+        using model::Z;
         config = c;
-        scales[sensors::accelerometer] = c["scales"]["accelerometer"].as<base_float_t>();
-        scales[sensors::gyro] = c["scales"]["gyro"].as<base_float_t>();
-        scales[sensors::battery] = c["scales"]["gyro"].as<base_float_t>();
+        scales.segment<3>(model::imu::accelerometer).setConstant(c["scales"]["accelerometer"].as<base_float_t>(1.0));
+        scales.segment<3>(model::imu::gyroscope).setConstant(c["scales"]["gyro"].as<base_float_t>(1.0));
+        //~ scales(model::imu::pressure) = c["scales"]["pressure"].as<base_float_t>(1.0);
+        //~ scales.segment<3>(model::imu::magnetometer).setConstant(c["scales"]["magnetometer"].as<base_float_t>(1.0));
+        //~ scales(imu::battery) = c["scales"]["battery"].as<base_float_t>(1.0);
+
+        measurement.R.setZero();
+        measurement.R.diagonal()(model::imu::accelerometers[X]) = config["R"]["accelerometer"].as<base_float_t>(3e-1);
+        measurement.R.diagonal()(model::imu::accelerometers[Y]) = config["R"]["accelerometer"].as<base_float_t>(3e-1);
+        measurement.R.diagonal()(model::imu::accelerometers[Z]) = config["R"]["accelerometer"].as<base_float_t>(3e-1);
+
+        measurement.R.diagonal()(model::imu::gyroscopes[X]) = config["R"]["gyroscopes"].as<base_float_t>(3e-1);
+        measurement.R.diagonal()(model::imu::gyroscopes[Y]) = config["R"]["gyroscopes"].as<base_float_t>(3e-1);
+        measurement.R.diagonal()(model::imu::gyroscopes[Z]) = config["R"]["gyroscopes"].as<base_float_t>(3e-1);
+
+        //~ measurement.R.diagonal()(model::imu::pressure) = config["R"]["pressure"].as<base_float_t>(4e-3);
+
+        //~ measurement.R.diagonal()(model::imu::magnetometers[X]) = config["R"]["magnetometers"][0].as<base_float_t>(3e-1);
+        //~ measurement.R.diagonal()(model::imu::magnetometers[Y]) = config["R"]["magnetometers"][1].as<base_float_t>(3e-1);
+        //~ measurement.R.diagonal()(model::imu::magnetometers[Z]) = config["R"]["magnetometers"][2].as<base_float_t>(3e-1);
     }
 
     void run() {
-        if(config["use_smcu"]) {
+        if(config["use_smcu"].as<bool>(false)) {
             LinkQuad::comm::serial::listen<SSMCU::Part>(config["smcu_port"].as<std::string>(), smcu);
+        } else {
+            CRAP::comm::listen(config["smcu_topic"].as<std::string>("/imu_serial"), smcu);
         }
     }
 }

@@ -16,7 +16,7 @@ using namespace Eigen;
 using namespace CRAP;
 using namespace CRAP::time;
 using namespace CRAP::observer;
-using namespace CRAP::observer::model;
+using namespace CRAP::model;
 
 void calculate_control_signal(const model::state_vector&);
 void init_controller();
@@ -83,7 +83,7 @@ void step() {
     std::ofstream dxout("step_xdot.mat");
     std::ofstream uout("step_u.mat");
 
-    //~ for(int i = 0; i < observer::model::number_of_states; ++i) {
+    //~ for(int i = 0; i < model::number_of_states; ++i) {
     {
         int i = 3;
         x[i] += delta;

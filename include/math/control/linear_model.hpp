@@ -51,10 +51,10 @@ namespace CRAP {
             Derivedf f,
             const Derivedx& x0,
             const Derivedu& u0,
-            DerivedA& A,
-            const scalar delta = 1e-3)
+            DerivedA& A)
         {
-            const scalar div = 0.5/delta;
+            static const scalar delta = 1e-3;
+            static const scalar div = 0.5/delta;
 
             Derivedx x(x0);
             for(unsigned int i = starting_state; i < number_of_states + starting_state; ++i) {
@@ -66,22 +66,23 @@ namespace CRAP {
             }
         }
 
-        template<int number_of_states, int number_of_controls, int starting_state = 0, int starting_control = 0, typename scalar = base_float_t, typename Derivedf, typename Derivedx, typename Derivedu, typename DerivedA, typename DerivedB>
+        template<int number_of_states, int number_of_controls, int starting_state = 0, int starting_control = 0, typename scalar = base_float_t, typename Derivedf, typename Derivedx, typename Derivedu, typename DerivedB>
         void control_jacobian(
             Derivedf f,
             const Derivedx& x0,
             const Derivedu& u0,
-            DerivedB& B,
-            const scalar delta = 1e-3)
+            DerivedB& B)
         {
-            const scalar div = 0.5/delta;
+            static const scalar delta = 1e-3;
+            static const scalar div = 0.5/delta;
 
             Derivedu u(u0);
             for(unsigned int i = starting_control; i < number_of_controls+starting_control; ++i) {
                 u[i] += delta;
-                B.col(i-starting_control) = div*f(x0,u).template segment<number_of_states>(starting_state);
+                Block<DerivedB, number_of_states, 1> Bcol = B.template block<number_of_states, 1>(starting_state, i-starting_control);
+                Bcol = div*f(x0,u).template segment<number_of_states>(starting_state);
                 u[i] = u0[i] - delta;
-                B.col(i-starting_control) -= div*f(x0,u).template segment<number_of_states>(starting_state);
+                Bcol -= div*f(x0,u).template segment<number_of_states>(starting_state);
                 u[i] = u0[i];
             }
         }
@@ -93,10 +94,10 @@ namespace CRAP {
             const Derivedx& x0,
             const Derivedu& u0,
             DerivedA& A,
-            DerivedB& B,
-            const scalar delta = 1e-3)
+            DerivedB& B)
         {
-            const scalar div = 0.5/delta;
+            static const scalar delta = 1e-3;
+            static const scalar div = 0.5/delta;
 
             Derivedx x(x0);
             for(unsigned int i = starting_state; i < number_of_states + starting_state; ++i) {

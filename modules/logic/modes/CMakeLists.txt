@@ -4,6 +4,8 @@ set(MODES
     hover
     landing
     freeflight
+    ptaminit
+    acrobat
 )
 
 

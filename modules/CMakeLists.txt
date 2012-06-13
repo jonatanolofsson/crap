@@ -8,7 +8,6 @@ include_directories ( ${Eigen3_INCLUDE_DIR} )
 
 # Modules with default configuration
 set(MODULES
-    comm_sender
 )
 
 # Include directories
@@ -17,7 +16,9 @@ set(SUBDIRS
     logic
     controller
     observer
+    reality
     sensor_reader
+    camera_reader
     baselink
 )
 

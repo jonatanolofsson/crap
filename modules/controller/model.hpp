@@ -27,7 +27,6 @@ namespace CRAP {
         using namespace Eigen;
         namespace model {
             const int number_of_states              = 12;
-            const int number_of_linearized_states   = 12;
             const int number_of_controls            = 4;
             const int number_of_references          = 4;
 

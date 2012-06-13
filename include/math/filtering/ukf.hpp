@@ -68,7 +68,7 @@ namespace CRAP {
                         XX.col(c+1) = x + sigma.col(c);
                         XX.col(number_of_states + c+1) = x - sigma.col(c);
                     }
-                    //~ std::cout << "\n :: Sigma points ::< \n" << XX << "\n> ::::::::::::::::::::::" << std::endl;
+                    //~ std::cout << "\n :: Sigma points ::< \n" << sigma.transpose() << "\n> ::::::::::::::::::::::" << std::endl;
                 }
             }
 
@@ -79,42 +79,61 @@ namespace CRAP {
              * @param u Control signal
              * @return void. The internal state of the filter is modified.
              */
-            template<int number_of_states, int number_of_controls, int starting_state = 0, typename scalar = base_float_t>
+            template<int number_of_states, int number_of_controls, typename scalar = base_float_t>
             void predict(
                 KalmanFilter<number_of_states, number_of_controls, scalar>& filter,
-                const prediction_model_tmpl<number_of_states, number_of_controls, scalar>& f,
+                const prediction_model<number_of_states, number_of_controls, scalar>& f,
                 const Matrix<scalar, number_of_controls, 1>& u,
-                const scalar alpha = 1e-2, const scalar beta = 2.0, const scalar kappa = 0)
+                const scalar alpha = 1.0    , const scalar beta = 2.0, const scalar kappa = 1)
             {
                 Matrix<scalar, number_of_states, 2*number_of_states+1> XX, fXX;
                 Matrix<scalar, number_of_states, number_of_states> P;
                 Matrix<scalar, number_of_states, 1> x;
-                //~ std::cout << "Pre-time update::::" << std::endl;
-                //~ std::cout << "x:\n" << x << std::endl;
-                //~ std::cout << "P:\n" << P << std::endl;
+
                 // Create unscented distribution
                 detail::unscented<number_of_states, scalar>(
                     XX,
-                    filter.x.template block<number_of_states, 1>(starting_state, 0),
-                    filter.P.template block<number_of_states, number_of_states>(starting_state, starting_state),
+                    filter.x,
+                    filter.P,
                     alpha*std::sqrt(number_of_states+kappa)
                 ); // Step one complete
                 const scalar lambda = alpha*alpha*(number_of_states+kappa) - number_of_states;
-                const scalar norm = 1/(2*alpha*alpha*(number_of_states+kappa)); // 1/[2*(L+lambda)]
+                const scalar norm = 0.5/(alpha*alpha*(number_of_states+kappa)); // 1/[2*(L+lambda)]
+
+                //~ std::cout << "Pre-time update::::  lambda: " << lambda << " :::: norm: " << norm << " :::::: u: " << u.transpose()  << std::endl;
+                //~ std::cout << "x:\n" << filter.x.transpose() << std::endl;
+                //~ std::cout << "P:\n" << filter.P << std::endl;
 
                 // Predict points of XX using supplied predict model
                     // State covariance
                 for (std::size_t i = 0; i < (2*number_of_states+1); ++i) {
                     fXX.col(i) = f.f( XX.col(i) , u );
+                    //~ std::cout << "x: " << XX.col(i).transpose() << "\t u: " << u.transpose() << "\nf: " << fXX.col(i).transpose() << std::endl;
                 }
+                //~ std::cout << "XX: \n" << XX.transpose() << ":::::::::::::" << std::endl;
+                //~ std::cout << "fXX: \n" << fXX.transpose() << ":::::::::::::" << std::endl;
 
 
                 // Mean of predicted distribution: x
-                x = fXX.col(0) * 2 * lambda;
-                for (std::size_t i = 1; i < (2*number_of_states+1); ++i) {
+                double s1 = fXX.col(0)(2) * 2.0 * lambda;
+                double s2 = fXX.col(0)(2);
+                double s3 = 2.0 * lambda;
+                double mi = fXX.col(0)(2);
+                double ma = fXX.col(0)(2);
+
+                x = fXX.col(0) * 2.0 * lambda;
+                for (unsigned int i = 1; i < (2*number_of_states+1); ++i) {
                     x += fXX.col(i);
+                    s1 += fXX.col(i)(2);
+                    s2 += fXX.col(i)(2);
+                    s3 += 1;
+                    if(fXX.col(i)(2) < mi) mi = fXX.col(i)(2);
+                    if(fXX.col(i)(2) > ma) ma = fXX.col(i)(2);
+                    //~ std::cout << i << "/" << fXX.cols() << " ";
                 }
+                    //~ std::cout << std::endl;
                 x *= norm; // Step 2 complete. x now \hat{x}_{k+1|k}
+                //~ std::cout << "Before: " << filter.x(2) << "\t Weighted: " << s1*norm << "\t Sum: " << s3*norm << "\t Mean: " << s2/(2*number_of_states + 1) << "\t Min: " << mi << "\t Max: " << ma << "\t delta: " << x(2)-filter.x(2) << std::endl;
 
 
                 // Covariance of distribution: X
@@ -134,14 +153,15 @@ namespace CRAP {
                 P *= norm; // Step 3 complete. P now P_{k+1|k}
 
                 // Addative Noise Prediction.
-                // Originally computed about center point, but I figure x is the best estimate..
-                filter.x.template block<number_of_states, 1>(starting_state, 0) = x;
-                filter.P.template block<number_of_states, number_of_states>(starting_state, starting_state) = P + f.Q( x , u );
+                //~ // Q originally computed about center point, but I figure x is the best estimate..
+                filter.x = x;
+                filter.P = P + f.Q;
 
 
                 //~ std::cout << "Post-time update::::" << std::endl;
-                //~ std::cout << "x:\n" << x << std::endl;
-                //~ std::cout << "P:\n" << P << std::endl;
+                //~ std::cout << "x:\n" << filter.x.transpose() << std::endl;
+                //~ std::cout << "x:\n" << x(2) << std::endl;
+                //~ std::cout << "P:\n" << filter.P << std::endl;
             }
 
 
@@ -153,10 +173,10 @@ namespace CRAP {
              * @param z Measured states
              * @return void. The internal state of the filter is modified.
              */
-            template<int number_of_states, int number_of_controls, int number_of_observations, int starting_state = 0, typename scalar = base_float_t>
+            template<int number_of_states, int number_of_controls, int number_of_observations, typename scalar = base_float_t>
             void observe(
                 KalmanFilter<number_of_states, number_of_controls, scalar>& filter,
-                const Matrix<scalar, number_of_observations, 1>& (*h)(const Matrix<scalar, number_of_states, 1>&),
+                const observation_model<number_of_states, number_of_observations, scalar>& h,
                 const observation<number_of_observations, scalar>& o,
                 const scalar alpha = 1e-2, const scalar beta = 2.0, const scalar kappa = 0)
             {
@@ -165,23 +185,28 @@ namespace CRAP {
                 Matrix<scalar, number_of_observations, (2*number_of_states+1)> zXX;
                 Matrix<scalar, number_of_observations, 1> z_hat;
                 Matrix<scalar, number_of_observations,number_of_observations> Pzz;
-                Matrix<scalar, number_of_states, number_of_observations> Pxz, K;
+                Matrix<scalar, number_of_states, number_of_observations> Pxz;
+                //~ Matrix<scalar, number_of_states, number_of_observations> K;
 
                 // Create unscented distribution
                 detail::template unscented<number_of_states, scalar>(
                     XX,
-                    filter.x.template block<number_of_states, 1>(starting_state, 0),
-                    filter.P.template block<number_of_states, number_of_states>(starting_state, starting_state),
+                    filter.x,
+                    filter.P,
                     alpha*std::sqrt(number_of_states+kappa)
                 ); // Step one complete
 
                 const scalar lambda = alpha*alpha*(number_of_states+kappa) - number_of_states;
-                const scalar norm = 1/(2*alpha*alpha*(number_of_states+kappa)); // 1/[2*(L+lambda)]
+                const scalar norm = 0.5/(alpha*alpha*(number_of_states+kappa)); // 1/[2*(L+lambda)]
+
+                //~ std::cout << "Pre-measurement update::::  lambda: " << lambda << " :::: norm: " << norm << " :::::: Sum: " << 2.0*(number_of_states + lambda) * norm  << std::endl;
+                //~ std::cout << "x: " << filter.x.transpose() << std::endl;
+                //~ std::cout << "P:\n" << filter.P << std::endl;
 
                 // Predict points of XX using supplied observation model
                 {
                     for (std::size_t i = 0; i < (2*number_of_states+1); ++i) {
-                        zXX.col(i) = h( XX.col(i) );
+                        zXX.col(i) = h.h( XX.col(i) );
                     }
                 }
 
@@ -231,17 +256,19 @@ namespace CRAP {
 
                 //~ std::cerr << "<Pxz: " << std::endl << Pxz << ">" << std::endl;
                 // Kalman gain
-                K.noalias() = (Pzz.transpose().ldlt().solve(Pxz.transpose())).transpose();
+                //~ K.noalias() = (Pzz.transpose().ldlt().solve(Pxz.transpose())).transpose();
+                auto KI = Pzz.ldlt();
 
                 //~ std::cerr << "<K: " << std::endl << K << ">" << std::endl;
                 // Filter update
-                filter.x.template block<number_of_states, 1>(starting_state, 0) += K*(o.z - z_hat);
-                filter.P.template block<number_of_states, number_of_states>(starting_state, starting_state) -= K*Pzz*K.transpose();
+                //~ std::cout << "z:    " << o.z.transpose() << "\nzhat: " << z_hat.transpose() << std::endl;
+                filter.x += Pxz*KI.solve(o.z - z_hat);
+                filter.P -= Pxz*KI.solve(Pxz.transpose()); //K*Pzz*K.transpose();
 
 
                 //~ std::cout << "Post-Measurement update::::" << std::endl;
-                //~ std::cout << "x:\n" << x << std::endl;
-                //~ std::cout << "P:\n" << P << std::endl;
+                //~ std::cout << "x: " << filter.x.transpose() << std::endl;
+                //~ std::cout << "P:\n" << filter.P << std::endl;
                 //~ std::cout << "K:\n" << K << std::endl;
                 //~ std::cout << "XX:\n" << XX << std::endl;
                 //~ std::cout << "zXX:\n" << zXX << std::endl;

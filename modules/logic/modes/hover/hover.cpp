@@ -29,7 +29,7 @@ extern "C" {
     void configure(YAML::Node& c) {config = c;}
     using namespace CRAP;
     using namespace Eigen;
-    using namespace observer::model;
+    using namespace model;
 
     Matrix<base_float_t, 3, 1> position;
     state_vector x;
@@ -40,33 +40,42 @@ extern "C" {
 
     void* hover_control() {
         //~ std::cout << "Hovering control" << std::endl;
-        ref.setZero();
+        //~ ref.setZero();
+        x = get_state();
         {
-            const base_float_t e = x(state::position[X]) - position.x();
-            static base_float_t pe = 0;
-            ref.x() = config["control"]["x"]["P"].as<base_float_t>(1.0) * e + config["control"]["x"]["D"].as<base_float_t>(0.0) * (e - pe);
-            pe = e;
+            const base_float_t e = position.x() - x(state::positions[X]);
+            static base_float_t pex = 0;
+            ref.x() = config["control"]["x"]["P"].as<base_float_t>(1.0) * e + config["control"]["x"]["D"].as<base_float_t>(0.0) * (e - pex);
+            pex = e;
         }
         {
-            const base_float_t e = x(state::position[Y]) - position.y();
-            static base_float_t pe = 0;
-            ref.y() = config["control"]["y"]["P"].as<base_float_t>(1.0) * e + config["control"]["y"]["D"].as<base_float_t>(0.0) * (e - pe);
-            pe = e;
+            const base_float_t e = position.y() - x(state::positions[Y]);
+            static base_float_t pey = 0;
+            ref.y() = config["control"]["y"]["P"].as<base_float_t>(1.0) * e + config["control"]["y"]["D"].as<base_float_t>(0.0) * (e - pey);
+            pey = e;
         }
         {
-            const base_float_t e = x(state::position[Z]) - position.z();
-            static base_float_t pe = 0;
-            ref.z() = config["control"]["z"]["P"].as<base_float_t>(1.0) * e + config["control"]["z"]["D"].as<base_float_t>(0.0) * (e - pe);
-            pe = e;
+            const base_float_t e = position.z() - x(state::positions[Z]);
+            static base_float_t pez = 0;
+            ref.z() = config["control"]["z"]["P"].as<base_float_t>(1.0) * e + config["control"]["z"]["D"].as<base_float_t>(0.0) * (e - pez);
+            pez = e;
         }
         CRAP::comm::send("/reference", ref);
         return (void*) hover_control;
     }
 
+    void* zero_velocity() {
+        ref.setZero();
+        CRAP::comm::send("/reference", ref);
+        return (NULL);
+    }
+
     void* hover() {
         std::cout << "Hovering state 1" << std::endl;
         x = get_state();
-        position = x.segment<3>(state::positions);
+        position = x.segment<3>(state::position);
+        std::cout << "Hovering to position: " << position.transpose() << std::endl;
+        //~ return (void*) zero_velocity;
         return (void*) hover_control;
     }
 }

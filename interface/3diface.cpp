@@ -21,8 +21,7 @@ int argc; char** argv;
 
 namespace visualizer {
     using namespace Eigen;
-    using namespace CRAP::observer;
-    using namespace CRAP::observer::model;
+    using namespace CRAP::model;
     YAML::Node config;
 
     void send_message(spnav::event& sev) {
@@ -42,8 +41,10 @@ namespace visualizer {
         } else {    /* SPNAV_EVENT_BUTTON */
             if(sev.button.press) {
                 BIT_SET(message.params_8i_0, CRAP::comm_messages::BUTTON_PRESS);
+                //~ std::cout << "Pressed putton " << sev.button.bnum << std::endl;
             } else {
                 BIT_SET(message.params_8i_0, CRAP::comm_messages::BUTTON_RELEASE);
+                //~ std::cout << "Released putton " << sev.button.bnum << std::endl;
             }
             message.params_8i_1 = sev.button.bnum;
         }
@@ -78,7 +79,7 @@ namespace visualizer {
         -1,0,0
     ).finished());
 
-    void update_state(const CRAP::comm_messages::state_message d) {
+    void update_state(const CRAP::comm_messages::state_message& d) {
         if(flyer == NULL) return;
         Vector3f p; p << d.params_32f_0, d.params_32f_1, d.params_32f_2;
         //~ std::cout << "P: " << p.transpose() << "; Pworld: " << (ned2world*p).transpose() << std::endl;
@@ -91,7 +92,7 @@ namespace visualizer {
 
         flyer->base.translation() = ned2world * p;
         flyer->base.linear() = ned2world * q.toRotationMatrix() * ned2world.transpose();
-        
+
         Vector3f cpos(flyer->base.translation());
         cpos.z() += 3.0;
         camera->look_at(cpos, flyer->base.translation(), Vector3f::UnitY());

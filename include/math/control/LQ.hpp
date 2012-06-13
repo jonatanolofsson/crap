@@ -204,14 +204,14 @@ std::ofstream sout("S.mat");
                         L = m.R.householderQr().solve((m.B.transpose()*S).eval());
 
                         ///
-                        Lr_inv.compute((m.M*((m.B*L - m.A).householderQr().solve(m.B.eval()))));
+                        //~ Lr_inv.compute((m.M*((m.B*L - m.A).householderQr().solve(m.B.eval()))));
                         //~ std::cout << m.A << std::endl << m.B << std::endl << m.M << std::endl << L << std::endl << S << std::endl << err << std::endl;
                     } else if(m.DICO == 'D') { // Discrete system
                         /// [2] eq. 9.37a: L = (B'SB + Q2)\B'SA
-                        L = (m.B.transpose()*S*m.B + m.R).householderQr().solve((m.B.transpose()*S*m.A).eval());
+                        L = (m.B.transpose()*S*m.B + m.R).eval().householderQr().solve((m.B.transpose()*S*m.A).eval());
 
                         /// [2] eq. 9.38½: Lr*r = ( M * (I + BL - A)\B )\r
-                        Lr_inv.compute((m.M*((state_matrix::Identity() + m.B*L - m.A).householderQr().solve(m.B.eval()))));
+                        //~ Lr_inv.compute((m.M*((state_matrix::Identity() + m.B*L - m.A).householderQr().solve(m.B.eval()))));
                     }
                 }
         };

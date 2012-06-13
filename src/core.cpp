@@ -145,7 +145,7 @@ namespace CRAP {
         bool configure = false;
         if(module["configuration"]) {
             if(module["configuration"].IsScalar()) {
-                node_config[name] = YAML::LoadFile(module["configuration"].as<std::string>());
+                node_config[name] = YAML::LoadFile(config["config_root"].as<std::string>() + module["configuration"].as<std::string>());
             } else {
                 node_config[name] = module["configuration"];
             }

@@ -1,0 +1,8 @@
+---
+use_smcu:   No
+smcu_port:  /dev/ttyS0
+smcu_topic: /imu_serial
+
+R:
+    orientation: 0.1
+    position: 0.1

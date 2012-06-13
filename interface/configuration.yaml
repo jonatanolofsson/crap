@@ -1,5 +1,5 @@
 ---
-port: /dev/pts/6
+port: /dev/pts/14
 input_range:
     - [365,423]
     - [404,431]
@@ -10,12 +10,12 @@ input_range:
 
 
 output_range:
-    x: 1
-    y: 1
-    z: 1
-    rx: 3
-    ry: 3
-    rz: 3
+    x: 0.5
+    y: 0.5
+    z: 0.5
+    rx: 1
+    ry: 1
+    rz: 1
 
 directories:
     root: /home/shared/projects/crap/

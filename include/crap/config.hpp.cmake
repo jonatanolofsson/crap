@@ -22,5 +22,6 @@
 
 #cmakedefine CRAP_PLOT
 #cmakedefine CRAP_OUTPUT_DATA
+#cmakedefine EXTENDED_MODEL
 
 #endif // CRAP_CONFIG_HPP

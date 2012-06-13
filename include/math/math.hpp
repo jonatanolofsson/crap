@@ -22,11 +22,21 @@
 
 #include <Eigen/Core>
 #include "crap/base_types.hpp"
+#include <cmath>
 
 #define SQR(x) ((x)*(x))
 #define SQRSGN(x) ((x)*std::abs((x)))
 #define CUBE(x) ((x)*(x)*(x))
 #define POW4(x) ((x)*(x)*(x)*(x))
+#define eul2q0(phi,theta,psi) (cos(phi * M_PI/360.0)*cos(theta * M_PI/360.0)*cos(psi * M_PI/360.0) + sin(phi * M_PI/360.0)*sin(theta * M_PI/360.0)*sin(psi * M_PI/360.0))
+#define eul2qi(phi,theta,psi) (sin(phi * M_PI/360.0)*cos(theta * M_PI/360.0)*cos(psi * M_PI/360.0) - cos(phi * M_PI/360.0)*sin(theta * M_PI/360.0)*sin(psi * M_PI/360.0))
+#define eul2qj(phi,theta,psi) (cos(phi * M_PI/360.0)*sin(theta * M_PI/360.0)*cos(psi * M_PI/360.0) + sin(phi * M_PI/360.0)*cos(theta * M_PI/360.0)*sin(psi * M_PI/360.0))
+#define eul2qk(phi,theta,psi) (cos(phi * M_PI/360.0)*cos(theta * M_PI/360.0)*sin(psi * M_PI/360.0) - sin(phi * M_PI/360.0)*sin(theta * M_PI/360.0)*cos(psi * M_PI/360.0))
+#define eul2quat(phi,theta,psi) eul2qi(phi,theta,psi),eul2qj(phi,theta,psi),eul2qk(phi,theta,psi),eul2q0(phi,theta,psi)
+#define quat2phi(q0,qi,qj,qk)   (std::atan2(2 * (q0*qi + qj*qk), (1-2*(qi*qi + qj*qj))))
+#define quat2theta(q0,qi,qj,qk) (std::asin(2*(q0*qj - qk*qi)))
+#define quat2psi(q0,qi,qj,qk)   (std::atan2(2 * (q0*qk + qi*qj), (1-2*(qj*qj + qk*qk))))
+#define quat2eul(q0,qi,qj,qk)   quat2phi(q0,qi,qj,qk),quat2theta(q0,qi,qj,qk),quat2psi(q0,qi,qj,qk)
 
 namespace CRAP {
     namespace math {
@@ -82,6 +92,11 @@ namespace CRAP {
         template<class T>
         inline T nearest_angle(T a, T b) {
             return a + round<T>((b-a)/(2*M_PI))*2*M_PI;
+        }
+
+        template<class T>
+        inline T nearest_angle_between(T a, T b) {
+            return round<T>((b-a)/(2*M_PI))*2*M_PI;
         }
 
         template <typename T> int sign(T val) {

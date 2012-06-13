@@ -20,7 +20,8 @@
 #ifndef CRAP_CONFIG_HPP
 #define CRAP_CONFIG_HPP
 
-#define CRAP_PLOT
+/* #undef CRAP_PLOT */
 #define CRAP_OUTPUT_DATA
+#define EXTENDED_MODEL
 
 #endif // CRAP_CONFIG_HPP
